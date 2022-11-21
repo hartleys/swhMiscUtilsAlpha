@@ -1,0 +1,53 @@
+#!/bin/bash
+
+#TODO-WRITE-HELPDOC
+#+SHORTDESC="TODO-WRITE-HELPDOC"
+#+ HELPTEXT="..."$'\n'
+#++HELPTEXT="More Help Text"$'\n'
+#+ SYNTAXTEXT="... [options]"$'\n'
+#+ PARAMS="--help: displays syntax and help info."$'\n'
+#++PARAMS="--man: synonym for --help."$'\n'
+#+ VERSION="0.0.6"
+CURRENT_SCRIPT_DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd -P )"
+if [ "$1" == "--help" -o "$1" == "--man" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript ${BASH_SOURCE[0]}
+  exit 1
+elif [ "$1" == "--manMarkdown" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript --markdown ${BASH_SOURCE[0]}
+  exit 1
+fi
+
+
+#GREPEXPR=$1
+#shift
+
+if [ "$#" == "1" ]; then
+  SEARCHSTRING=$1
+  SEARCHFILES="*.bash *.sh *.py *.R *.scala *.java"
+else
+  SEARCHSTRING="${@: -1}"
+  set -- "${@:1:$(($#-1))}"
+  SEARCHFILES="$@"
+fi
+
+
+
+
+#shift
+#FILENAME="${1:-/dev/stdin}"
+#shift
+
+#echo "SEARCHFILES=$SEARCHFILES"
+#echo "SEARCHSTRING=$SEARCHSTRING"
+
+find $SEARCHFILES -type f -exec grep -H "$SEARCHSTRING" {} \;
+ 
+
+#if [ "$FILENAME" == "-" ]; then
+#  cat /dev/stdin | find 
+#else if [ "${FILENAME: -3}" == ".gz" ]; then
+#  zcat ${FILENAME} |  | less -S
+#else
+#  cat ${FILENAME} | grep "$@" | less -S
+#fi
+

@@ -1,0 +1,117 @@
+#!/bin/bash
+
+#TODO: WRITE HELPDOC?
+
+tmpfile=$(mktemp /tmp/estat2.XXXXXX)
+exec 3>"$tmpfile"
+rm $tmpfile
+
+NOTITLELINE="";
+SHORT="";
+DEBUGMODE="";
+EQUIVMODE="0";
+TTYLEN=$(stty size | awk '{print $2}')
+TABBED="0";
+
+while [ "$#" -gt 0 ]
+do
+  if [ "${1:0:2}" == "--" ]; then
+    #echo "LONGPARAM!"
+    LONGPARAM=$1;
+    PARAMLIST="#";
+  else
+    #echo "SHORTPARAM!"
+    LONGPARAM="";
+    PARAMLIST=${1:1:${#1}-1}
+    PARAMLIST=$(echo $PARAMLIST | grep -o '.')
+  fi
+  #echo "LONG PARAM: \"${LONGPARAM}\""
+  #echo "PARAMLIST: \"${PARAMLIST}\""
+  for PARAM in $PARAMLIST;
+  do
+    #echo "SHORT PARAM: \"${PARAM}\""
+    if [ "$PARAM" == "h" -o "$LONGPARAM" == "--headless" ]; then
+      NOTITLELINE="1";
+    fi
+    if [ "$PARAM" == "s" -o "$LONGPARAM" == "--short" ]; then
+      SHORT="1";
+    fi
+    if [ "$PARAM" == "d" -o "$LONGPARAM" == "--debug" ]; then
+      DEBUGMODE="1";
+    fi
+    if [ "$PARAM" == "e" -o "$LONGPARAM" == "--equivMode" ]; then
+      EQUIVMODE="1";
+      SHORT="0";
+      NOTITLELINE="1";
+    fi
+    if [ "$PARAM" == "w" -o "$LONGPARAM" == "--width" ]; then
+      shift
+      TTYLEN=$1
+    fi
+    if [ "$PARAM" == "W" -o "$LONGPARAM" == "--wide" ]; then
+      TTYLEN=1000000
+    fi
+    if [ "$PARAM" == "t" -o "$LONGPARAM" == "--tab"  -o "$LONGPARAM" == "--tabbed" ]; then
+      TABBED=1
+      echo "TABBED!"
+    fi
+    
+  done
+  
+  shift;
+done
+
+
+if [ "$DEBUGMODE" == "1" ]; then
+  (>&2 echo "NOTITLELINE=\"$NOTITLELINE\"")
+  (>&2 echo "SHORT=\"$SHORT\"")
+  (>&2 echo "DEBUGMODE=\"$DEBUGMODE\"")
+fi
+
+if [ "$NOTITLELINE" == "1" ]
+then
+  qstat -xml | tr '\n' ' ' | sed 's#<job_list[^>]*>#\n#g' | sed 's#<[^>]*>##g' | grep " " | column -t >&3
+else
+  column -t <(echo "jobID prior name user state submit/start queue slots") <(qstat -xml | tr '\n' ' ' | sed 's#<job_list[^>]*>#\n#g' | sed 's#<[^>]*>##g' | grep " ") >&3
+fi
+
+if [ "$SHORT" != "1" ]; then
+  if [ "$EQUIVMODE" == "1" ]; then
+    cat /dev/fd/3 | sed $'s/[ ]\+/\t/g' | cut -f1,3-7
+  else
+    if [ "$TABBED" == "1" ]; then
+      cat /dev/fd/3 | sed $'s/[ ]\+/\t/g' 
+    else
+      cat /dev/fd/3 | column -t
+    fi
+  fi
+else
+  tmpfile1=$(mktemp /tmp/estat2.XXXXXX)
+  tmpfile2=$(mktemp /tmp/estat2.XXXXXX)
+
+  cat /dev/fd/3 | column -t > $tmpfile1
+  CHARLEN=$(( $(wc -L < $tmpfile1) ))
+  if [ "$CHARLEN" -le "$TTYLEN" ]; then
+    cat $tmpfile1
+    rm $tmpfile1
+  else
+    cat /dev/fd/3 | sed -e 's/$/ .../' | column -t > $tmpfile1
+    while [ "$CHARLEN" -gt "$TTYLEN" ]
+    do
+      cat $tmpfile1 | awk 'NF{NF-=2};1' | sed -e 's/$/ .../' | column -t > $tmpfile2;
+      CHARLEN=$(( $(wc -L < $tmpfile2) + 4));
+      rm $tmpfile1;
+      tmpfile1=$tmpfile2;
+      tmpfile2=$(mktemp /tmp/estat2.XXXXXX)
+    done
+    
+    if [ "$TABBED" == "1" ]; then
+      cat $tmpfile1 | sed $'s/[ ]\+/\t/g'    
+     echo "PRINTING TABBED"
+    else
+      cat $tmpfile1    
+    fi
+    rm $tmpfile1
+  fi
+fi
+

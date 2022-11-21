@@ -1,0 +1,7 @@
+#!/bin/bash
+#Written by Stephen Hartley, 2014-5-2, edited 2014-12-01
+
+#TODO: WRITE HELPDOC?
+
+estat "$@" -s
+

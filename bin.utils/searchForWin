@@ -1,0 +1,32 @@
+#!/bin/bash
+
+#+SHORTDESC="Searches for windows-formatted files (ie, files with carriage returns)"
+#+ HELPTEXT=""$'\n'
+#++HELPTEXT=" "$'\n'
+#+ SYNTAXTEXT="searchForWin"$'\n'
+#++SYNTAXTEXT=""$'\n'
+#++SYNTAXTEXT="searchForWin "$'\n'
+#++SYNTAXTEXT="     (print help on topic)"$'\n'
+#+ PARAMS="--help: displays syntax and help info."$'\n'
+#++PARAMS="--man: synonym for --help."$'\n'
+#+ VERSION="0.0.5"
+
+CURRENT_SCRIPT_DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd -P )"
+if [ "$1" == "--help" -o "$1" == "--man" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript ${BASH_SOURCE[0]}
+  exit 1
+elif [ "$1" == "--manMarkdown" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript --markdown ${BASH_SOURCE[0]}
+  exit 1
+fi
+
+FILEMATCH=$1
+CHECKDIR=$2
+
+if [ "$CHECKDIR" == "" ]; then
+  CHECKDIR=""
+fi
+
+find $CHECKDIR $FILEMATCH -type f -exec grep -l $'\r' {} \;
+
+#file -i "v018.p1.p1.chr9.aa.vcf.gz" | sed 's/[[:print:]]*\:[[:space:]][[:space:]]*\([[:graph:]]*\)\/[[:print:]]*$/\1/'

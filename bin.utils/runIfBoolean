@@ -1,0 +1,31 @@
+#!/bin/bash
+
+#+SHORTDESC="..."
+#+ HELPTEXT="..."$'\n'
+#+ SYNTAXTEXT="getLogTimeStamps log/blah/blah.stdout"$'\n'
+#+ PARAMS=""
+#+ VERSION="0.0.1"
+
+
+echoerr() { echo "$@" 1>&2; }
+
+CURRENT_SCRIPT_DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd -P )"
+if [ "$1" == "--help" -o "$1" == "--man" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript ${BASH_SOURCE[0]}
+  exit 1
+elif [ "$1" == "--manMarkdown" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript --markdown ${BASH_SOURCE[0]}
+  exit 1
+fi
+
+RUN_UTIL=$2
+RUN_BOOLEAN=$1
+shift
+shift
+
+if [ "$RUN_BOOLEAN" != "0" -a "$RUN_BOOLEAN" != "FALSE" -a "$RUN_BOOLEAN" != "false" -a "$RUN_BOOLEAN" != "False" ]; then
+  cat /dev/stdin | $RUN_UTIL "$@"
+else
+  cat /dev/stdin
+fi
+

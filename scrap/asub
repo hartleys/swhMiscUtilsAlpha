@@ -1,0 +1,12 @@
+#!/bin/bash
+
+TODO! WRITE ME!
+
+#find first non-dash-starting param
+#read file
+#find logfile location
+#create it if it doesn't exist
+#submit job!
+
+
+

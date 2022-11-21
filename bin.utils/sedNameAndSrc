@@ -1,0 +1,107 @@
+#!/bin/bash
+
+#+SHORTDESC="Read a text file and convert it to a comma delimited list for bash processing."
+#+ HELPTEXT="returns a single line of text with a delimited list from the given file"$'\n'
+#++HELPTEXT=" "$'\n'
+#+ SYNTAXTEXT="sedNameAndSrc -r v001p01 v002p01 my.file.name.v001p01.txt "$'\n'
+#++SYNTAXTEXT=""$'\n'
+#+ PARAMS="--help: displays syntax and help info."$'\n'
+#++PARAMS="--man: synonym for --help."$'\n'
+#++PARAMS="-r x y: Creates a new file with the same filename except with all instances of x replaced with y in both the filename and in the contents. This parameter can be used more than once."$'\n'
+#++PARAMS="-f or --force: Force overwrite."$'\n'
+#++PARAMS="-v or --verbose: Verbose."$'\n'
+#+ VERSION="0.0.5"
+
+CURRENT_SCRIPT_DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd -P )"
+if [ "$1" == "--help" -o "$1" == "--man" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript ${BASH_SOURCE[0]}
+  exit 1
+elif [ "$1" == "--manMarkdown" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript --markdown ${BASH_SOURCE[0]}
+  exit 1
+fi
+
+echoerr() { echo "$@" 1>&2; }
+
+VERBOSE="0"
+FORCE="0"
+READPARAM=1
+
+for OLDFILE in $@; do :; done
+#echo "$OLDFILE"
+
+REPLACE=();
+
+while [ "$#" -gt "0" ];
+do
+      if [ "$1" == "-v" -o "$1" == "--verbose" ];
+      then
+        VERBOSE="1";
+      fi
+      if [ "$1" == "-f" -o "$1" == "--force" ];
+      then
+        FORCE="1";
+      fi
+      if [ "$1" == "-r" -o "$1" == "--replace" ]; then
+        shift
+        OLDVER=$1
+        shift
+        NEWVER=$1
+        REPLACE+=( "${OLDVER}/${NEWVER}" )
+        echoerr "PARAM: REPLACE [${OLDVER} => ${NEWVER}]"
+      fi
+      
+      shift;
+
+done
+
+if [ "${OLDFILE}" == "" ]; then
+   echo "ERROR: no OLDFILE found. syntax is my.file.name.v001p01.txt v001p01 v002p01" 
+   exit 1
+fi
+
+#NEWFILE=$( echo $OLDFILE | sed "s/${OLDVER}/${NEWVER}/g" )
+
+tmpfile=$(mktemp /tmp/estat2.XXXXXX)
+
+echo ${OLDFILE} > ${tmpfile}
+
+if [ "${VERBOSE}" == "1" ]; then
+  echoerr "   OLD FILE: ${OLDFILE}"
+fi
+for RR in ${REPLACE[@]}; do
+  sed -i "s/${RR}/g" ${tmpfile}
+  if [ "${VERBOSE}" == "1" ]; then
+    echoerr "   REPLACING IN TITLE: ${RR}"
+    echoerr "      NEW FILENAME: $(cat ${tmpfile})"
+  fi
+done 
+
+NEWFILE=$(cat ${tmpfile})
+if [ "${VERBOSE}" == "1" ]; then
+  echoerr "   NEW FILE: ${NEWFILE}"
+fi
+
+
+if [ "${OLDFILE}" == "${NEWFILE}" ]; then
+   echoerr "ERROR: OLDFILE AND NEWFILE ARE IDENTICAL! DOES FILENAME NOT CONTAIN OLDVER STRING \"${OLDVER}\"?"
+   exit 1
+fi
+
+if [ -f "${NEWFILE}" ]; then
+   if [ "${FORCE}" == "0" ]; then
+     echoerr "ERROR: File \"${NEWFILE}\" already exists. use option -f to overwrite!"
+     exit 1
+   fi
+fi
+
+#cat ${OLDFILE} | sed "s/${OLDVER}/${NEWVER}/g" > ${NEWFILE}
+
+cat ${OLDFILE} > ${NEWFILE}
+
+for RR in ${REPLACE[@]}; do
+  echoerr "REPLACING: ${RR}"
+  sed -i "s/${RR}/g" ${NEWFILE}
+done 
+
+rm $tmpfile

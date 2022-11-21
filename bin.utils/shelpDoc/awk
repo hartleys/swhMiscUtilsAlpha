@@ -1,0 +1,25 @@
+shelp awk/sed
+Misc help on awk and sed
+
+   print line if col1 == findtext:
+     awk '$1 == "findtext" {print}'
+        or
+     awk '$1 == "findtext" {print $0}'
+        or
+     awk '{if($1 == "HELLO"){print $0}}'        
+  
+   print col 3 if col1 == findtext:
+     awk '$1 == "findtext" {print $3}'
+
+   print line if column 3 contains match for regex:
+     awk '$3 ~ /[a-zA-Z]+/ {print};'
+
+   print line if column 3 entirely matches regex 
+     (note ^$ chars):
+     awk '$3 ~ /^[a-zA-Z]+$/ {print};'
+
+   pass variables to AWK:
+     awk -v myvarid="$MYVARID" '$3 == myvarid {print}'
+
+   if-else:
+     awk '{if( $3 == WORLD ) {print} else {print "NO " $0}}'

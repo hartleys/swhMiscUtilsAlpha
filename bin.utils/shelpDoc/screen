@@ -1,0 +1,26 @@
+shelp screen
+How to use the screen utility
+
+   create a named screen:
+     screen -S myscreen
+
+   list all screens:
+     screen -list
+
+   attach a screen:
+     screen -r myscreen
+
+   Other useful options:
+     -S: specify a screen by name
+     -X: send the specified command to the named screen.
+         You can also use -d or -r to only look for attached or detached
+         screens
+   
+   From inside a screen:
+     quit: quits the screen
+   
+   So to kill a screen:
+     screen -X -S screenName quit
+
+   To remotely detach a screen
+     screen -d screenName

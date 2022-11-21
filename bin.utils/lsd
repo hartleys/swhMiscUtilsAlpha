@@ -1,0 +1,105 @@
+#!/bin/bash
+
+#+SHORTDESC="basically ls, but a little different and with tab-delimiting instead of fixed-width formatting"
+#+ HELPTEXT=""$'\n'
+#++HELPTEXT=" "$'\n'
+#+ SYNTAXTEXT=""$'\n'
+#++SYNTAXTEXT=""$'\n'
+#+ PARAMS="--help: displays syntax and help info."$'\n'
+#++PARAMS="--man: synonym for --help."$'\n'
+#++PARAMS="--sort X sort by X, where X can be either name, time, old, new (ie newest first)"$'\n'
+#++PARAMS="--delim X use delimiter X"$'\n'
+#++PARAMS=""$'\n'
+#++PARAMS="-v or --verbose: add verbose error reporting"$'\n'
+#+ VERSION="0.0.5"
+
+CURRENT_SCRIPT_DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd -P )"
+if [ "$1" == "--help" -o "$1" == "--man" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript ${BASH_SOURCE[0]}
+  exit 1
+elif [ "$1" == "--manMarkdown" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript --markdown ${BASH_SOURCE[0]}
+  exit 1
+fi
+
+DELIM=$'\t'
+SORTBY="name"
+VERBOSE="0"
+LASTPARAM="."
+FULLPATH="0"
+
+while [ "$#" -ge 1 ];
+do
+      if [ "$1" == "--delim" -o "$1" == "-d" ];
+      then
+        LASTPARAM="."
+        shift;
+        DELIM="$1";
+      fi
+      if [ "$1" == "-s" -o "$1" == "--sort" ];
+      then
+        LASTPARAM="."
+        shift;
+        SORTBY="$1";
+      fi
+      if [ "$1" == "-v" -o "$1" == "--verbose" ];
+      then
+        LASTPARAM="."
+        VERBOSE="1";
+      fi
+      if [ "$1" == "-f" -o "$1" == "--fullpath" -o "$1" == "--full"  -o "$1" == "--fullPath" ];
+      then
+        LASTPARAM="."
+        FULLPATH="1";
+      fi
+      shift;
+      if [ "$#" -ge 1 ]; then
+         LASTPARAM=$1
+      fi
+done
+
+LASTPARAM=$( echo $LASTPARAM | sed 's/\/$//g' )
+DEPTH=$( echo $LASTPARAM | tr '/' '\n' | grep -c '^' );
+
+if [ "$VERBOSE" == "1"  ]; then
+  (>&2 echo "   DELIM  = \"${DELIM}\"");
+  (>&2 echo "   SORTBY  = \"${SORTBY}\"");
+  (>&2 echo "   LASTPARAM = \"${LASTPARAM}\"");
+fi
+
+LASTPARAM=$( echo $LASTPARAM | sed 's/\/$//g' )
+DEPTH=$( echo $LASTPARAM | tr '/' '\n' | grep -c '^' );
+
+if [ "$VERBOSE" == "1"  ]; then
+  (>&2 echo "   LASTPARAM = \"${LASTPARAM}\"");
+  (>&2 echo "   DEPTH = \"${DEPTH}\"");
+fi
+
+SORTCOL=7
+SORTMETHOD="-d"
+if [ "${SORTBY}" == "oldestFirst" -o "${SORTBY}" == "old"  -o "${SORTBY}" == "oldest"  ]; then
+   SORTCOL=4
+   SORTMETHOD="--general-numeric-sort"
+else
+   if [ "${SORTBY}" == "name" ]; then
+      SORTCOL=7
+      SORTMETHOD="--dictionary-order --ignore-case"
+   else
+      if [ "${SORTBY}" == "new" -o "${SORTBY}" == "newest" -o "${SORTBY}" == "newestFirst" -o "${SORTBY}" == "time" ]; then
+        SORTCOL=4
+        SORTMETHOD="--general-numeric-sort --reverse"
+      else
+        (>&2 echo "   ERROR: sortby \"${SORTBY}\" not recognized. Valid options are \"time\" or \"name\" pr \"old\" or \"new\"");
+        exit 1
+      fi
+   fi
+fi
+
+FILENAMEVAR="%P"
+if [ "${FULLPATH}" == "1" ]; then
+   FILENAMEVAR="%p"
+fi
+
+
+
+find ${LASTPARAM} -maxdepth ${DEPTH} -printf "%M|%n|%u|%T@|%TY.%Tm.%Td_%TH.%TM|%s|${FILENAMEVAR}\n" | sort --field-separator='|' ${SORTMETHOD} -k ${SORTCOL} | sed 's/[|]/'"${DELIM}"'/g' 

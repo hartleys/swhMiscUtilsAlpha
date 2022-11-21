@@ -1,0 +1,28 @@
+# steveUtilsBeta
+
+Misc utilities, not ready for general use.
+## Available Commands:
+addQuotesToTable.py               Adds quotation marks to every entry of a table.
+bell                              Rings an audible bell.
+bellRing                          Rings an audible bell three times.
+decodeColByName.py                (no description)
+decodeColumn.py                   (no description)
+extractRandomLines.py             Extracts N random lines from input file.
+extractVariantSamplesBySample.py  (no description)
+extractVariantSamples.py          (no description)
+filterCols.py                     (no description)
+getStat.py                        Gets basic stats from a character stream
+getUnique.py                      Extracts/counts unique elements from a list
+grepUntil                         Grabs a file until it hits a match.
+kettlewatch                       Watches the queue.
+prog                              Adds progress printing to stderr.
+pullANN.py                        Extracts data from ANN field (from CGR VCF file).
+qsubw                             (no description)
+qsubwatch                         (no description)
+shareMisc                         Lists utilities available in the shareMisc module.
+shelp                             Linux Cheat Sheet
+splitVcfByChrom.py                Splits a VCF into parts by chromosome.
+truncateCells.py                  Truncates overlong cells so they don't break excel
+vcf2table.py                      Converts VCF to tab-delimited table
+
+

@@ -1,0 +1,96 @@
+#!/bin/bash
+#FOR RUNNING ON SLURM/BIOWULF:
+#SBATCH -N 1
+#SBATCH -n 1
+#SBATCH --mem 10g
+#SBATCH --job-name=steveTest
+#SBATCH -o logs/%x.%N.%j.out # STDOUT
+#SBATCH -e logs/%x.%N.%j.out # STDERR
+#
+#FOR RUNNING ON CCAD:
+###############################
+# SGE settings Here
+# Basically, if a line starts with "#$", then you can enter any
+# qsub command line flags .  See the qsub(1) man page.
+# Redirect the STDOUT and STDERR files:
+#$ -o WES.logs/$JOB_ID_$JOB_NAME.stdout
+#$ -j yes
+#$ -S /bin/bash
+#$ -q long.q,xlong.q
+# Do some validation checking, and bail on errors
+#$ -w e
+# Operate in the current directory
+#$ -cwd
+# End SGE Settings
+###############################
+# Usable variables: JOB_TITLE, HOSTNAME, JOB_NAME, JOB_ID
+
+echo "--------------------------------------------------------------------------------"
+echo "--------------------------------------------------------------------------------"
+
+echo "$( date )"
+
+echo "--------------------------------------------------------------------------------"
+echo "--------------------------------------------------------------------------------"
+
+
+
+
+source /etc/profile.d/modules.sh
+
+module use /DCEG/Projects/CCSS/steve/modules
+module use /mnt/nfs/gigantor/ifs/Shared/hartleys/modulesBeta/
+module use /mnt/nfs/gigantor/ifs/Shared/hartleys/modules/
+
+module load sge
+module load scala 
+module load shareMisc
+module load jdk/1.8.0_111
+module unload vArmyKnife
+module unload vArmyKnifeBeta
+module load vArmyKnifeBeta/1.9.89
+
+echo "modules loaded..."
+module list
+
+
+CURRLOC=$( ~/bin/getCurrentLocation )
+source <( ~/bin/getCurrentLocation -s -p )
+cat <( ~/bin/getCurrentLocation -s -p )
+
+module use "$SWHENV_PRIVATE_MODULES"
+module use "$SWHENV_SHAREDMODULES"
+module use "$SWHENV_SHAREDMODULESBETA"
+
+#if [ "$CURRLOC" == "CCAD" ]; then
+  module load jdk/1.8.0_111 sge sbt R/3.3.0 texinfo/6.3 gcc/4.8.4 shareMisc bedtools vcftools bcftools tabix bgzip python steveQtool
+#else
+#  module load vArmyKnifeBeta shareMisc java/1.8.0_92 vcftools bedtools tabix python
+#fi
+
+
+RESOURCE_DIR=$SWHENV_RESOURCEDIR
+RESOURCEDIR=$RESOURCE_DIR
+
+export _JAVA_OPTIONS="-XX:ParallelGCThreads=1 -Xss2M -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled"
+export MALLOC_ARENA_MAX=1
+
+module list
+
+#RESOURCE_DIR=/mnt/nfs/gigantor/ifs/DCEG/Projects/CCSS/steve/resources/
+#RESOURCEDIR=$RESOURCE_DIR
+
+
+
+echo "--------------------------------------------------------------------------------"
+echo "--------------------------------------------------------------------------------"
+echo "SCRIPT_EXECUTION_SUCCESSFULLY_COMPLETED $( date )"
+echo "--------------------------------------------------------------------------------"
+echo "--------------------------------------------------------------------------------"
+
+echo "SCRIPT_EXECUTION_SUCCESSFULLY_COMPLETED"
+
+#echo "End In-Script Notes." >> $MYLOGFILE
+# Clean up:
+
+

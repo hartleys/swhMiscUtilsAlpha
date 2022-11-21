@@ -1,0 +1,84 @@
+#!/bin/bash
+
+#estat | tail -n+2 | awk '{ if ( $5 == "qw" ) print $1 }' | tr '\n' '|'
+
+#+SHORTDESC="Adds progress printing to stderr."
+#+ HELPTEXT=""$'\n'
+#++HELPTEXT="More Help Text"$'\n'
+#+ SYNTAXTEXT="prog [options]"$'\n'
+#+ PARAMS="--help: displays syntax and help info."$'\n'
+#++PARAMS="--man: synonym for --help."$'\n'
+#++PARAMS="--targetTime or -t: Target amount of time per line written to stderr, in seconds. Default is 60."$'\n'
+#++PARAMS="--dateString or -d: date format parameter to pass to the date function. Default is blank."$'\n'
+#++PARAMS="--initialCt or -k: Initial number of lines per dot. Default is 1."$'\n'
+#+ VERSION="0.0.6"
+
+CURRENT_SCRIPT_DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd -P )"
+if [ "$1" == "--help" -o "$1" == "--man" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript ${BASH_SOURCE[0]}
+  exit 1
+elif [ "$1" == "--manMarkdown" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript --markdown ${BASH_SOURCE[0]}
+  exit 1
+fi
+
+LINETIME=60
+DATESTRING=""
+DOTCT=1
+
+while [ "$#" -gt 1 ];
+do
+      if [ "$1" == "--initialCt" -o "$1" == "-k" ];
+      then
+        shift;
+        DOTCT="$1";
+      fi
+      if [ "$1" == "--dateString" -o "$1" == "-d" ];
+      then
+        shift;
+        DATESTRING="$1";
+      fi
+      if [ "$1" == "--targetTime" -o "$1" == "-t" ];
+      then
+        shift;
+        LINETIME="$1";
+      fi
+      shift;
+done
+
+MULTPOS=1
+
+lnct=0
+prevTime=$(date +%s)
+
+(>&2 echo  "STARTING [ 1 dot = $DOTCT lines, target time = $LINETIME ] [ $(date $DATESTRING) ]")
+
+while read line
+do
+  lnct=$(( $lnct + 1 ))
+  if [ "$(( $lnct % $DOTCT ))" == "0" ]; then
+    (>&2 echo -n ".")
+    if [ "$(( $lnct % ( $DOTCT * 5 ) ))" == "0" ]; then
+      (>&2 echo -n " ")      
+      if [ "$(( $lnct % ( $DOTCT * 20 ) ))" == "0" ]; then
+        (>&2 echo "$lnct lines [ $(date $DATESTRING) ]")
+        currTime=$(date +%s)
+        if [ "$(( $currTime - $prevTime ))" -lt $LINETIME ]; then
+          if [ "$MULTPOS" == "1" ]; then
+            DOTCT=$(( $DOTCT * 2 ))
+          else
+             if [ "$MULTPOS" == "2" ]; then
+               DOTCT=$(( $DOTCT / 2 * 5 ))
+             else
+               DOTCT=$(( $DOTCT * 2 ))
+               MULTPOS=0
+             fi
+          fi
+          (>&2 echo "     [increasing progress speed, 1 dot = $DOTCT lines]")
+          MULTPOS=$(( $MULTPOS + 1 ))
+        fi
+      fi
+    fi
+  fi
+  echo "$line"
+done < /dev/stdin

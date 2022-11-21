@@ -1,0 +1,64 @@
+#!/bin/bash
+
+#+SHORTDESC="Grabs a file until it hits a match."
+#+ HELPTEXT="..."$'\n'
+#++HELPTEXT="More Help Text"$'\n'
+#+ SYNTAXTEXT="grepUntil [grep options] myfile.txt"$'\n'
+#+ PARAMS="..."$'\n'
+#+ VERSION="0.0.5"
+
+CURRENT_SCRIPT_DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd -P )"
+if [ "$1" == "--help" -o "$1" == "--man" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript ${BASH_SOURCE[0]}
+  exit 1
+elif [ "$1" == "--manMarkdown" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript --markdown ${BASH_SOURCE[0]}
+  exit 1
+fi
+
+
+if [ "$#" -lt 2 ];
+then
+  (>&2 echo "Error: requires two parameters")
+  exit 1;
+fi
+
+OPTS="";
+
+while [ "$#" -gt 2 ];
+do
+      OPTS="$OPTS $1"
+      shift;
+done
+
+GREPEXPR=$1;
+INFILE=$2;
+
+if [ "$INFILE" == "-" ]; then
+  (>&2 echo "Error: Cannot read from stdin, can only read from file.")
+  exit 1;
+fi
+
+if [[ "$INFILE" = *.gz ]]; then
+  (>&2 echo "INFILE=\"$INFILE\", GREPEXPR=\"$GREPEXPR\", GZIPPED")
+  HEADERLEN=$(zcat $INFILE | grep -v -m1 -n "$GREPEXPR" - | cut -f1 -d:)
+  zcat $INFILE | head -n+$(($HEADERLEN-1))
+else
+  (>&2 echo "INFILE=\"$INFILE\", GREPEXPR=\"$GREPEXPR\", PLAINTEXT")
+  HEADERLEN=$(cat $INFILE | grep -v -m1 -n "$GREPEXPR" - | cut -f1 -d:)
+  cat $INFILE | head -n+$(($HEADERLEN-1))
+fi
+
+
+#for last; do true; done
+#GREPEXPR=$last;
+#for param;
+#do
+#  if [ ${param:0:1} == "-" ]; then
+#    OPTS="$OPTS $param"
+#  fi
+#done
+#grep -v -m1 -n "^[#]" - | cut -f1 -d:)
+#grep $OPTS  $GREPEXPR
+#HEADERLEN=$(zcat $IN_VCF | grep -v -m1 -n "^##" - | cut -f1 -d:)
+#

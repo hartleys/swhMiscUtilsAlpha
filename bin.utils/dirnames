@@ -1,0 +1,24 @@
+#!/bin/bash
+
+#+SHORTDESC="Runs dirname on each line of stdin"
+#+ HELPTEXT="Runs dirname on each line of stdin"$'\n'
+#+ SYNTAXTEXT="cat filelist.txt | dirnames"$'\n'
+#+ PARAMS=""
+#+ VERSION="0.0.1"
+
+
+CURRENT_SCRIPT_DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd -P )"
+if [ "$1" == "--help" -o "$1" == "--man" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript ${BASH_SOURCE[0]}
+  exit 1
+elif [ "$1" == "--manMarkdown" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript --markdown ${BASH_SOURCE[0]}
+  exit 1
+fi
+
+
+while read line
+do
+   dirname $line
+done < /dev/stdin
+

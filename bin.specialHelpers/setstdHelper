@@ -1,0 +1,203 @@
+#!/bin/bash
+
+#+SHORTDESC="Find current location"
+#+ HELPTEXT="Figures out which machine you are currently running on"$'\n'
+#++HELPTEXT=" "$'\n'
+#++SYNTAXTEXT="setstd"$'\n'
+#++SYNTAXTEXT="     (sets useful environment variables and aliases based on which location it finds)"$'\n'
+#+ PARAMS="--help: displays syntax and help info."$'\n'
+#++PARAMS="--man: synonym for --help."$'\n'
+#+ VERSION="0.0.5"
+
+# In order for this to work properly, you will need to run the following,
+#   or preferably, add the following to your .bash_profile and .bashrc
+function setstd(){
+  echo "running setstd function...";
+  source $(which setstdHelper) "$@"
+}
+#
+#
+#
+
+CURRENT_SCRIPT_DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd -P )"
+if [ "$1" == "--help" -o "$1" == "--man" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript ${BASH_SOURCE[0]}
+  exit 1
+elif [ "$1" == "--manMarkdown" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript --markdown ${BASH_SOURCE[0]}
+  exit 1
+fi
+
+
+OUTPUTSOURCE=0;
+VERBOSE=0;
+DEBUG=0
+ERRECHO=0;
+PRIVATE=0;
+EXTRA=0;
+BETA=0;
+
+REDOOPTIONS="";
+
+while [ $# -gt 0 ];
+do
+  XRAW=$1
+  
+  ##X=$XRAW
+  ##i=$((${#XRAW}-2))
+  ##X=${XRAW:0:2}
+  ##Y="-${XRAW:2:$i}"
+  
+  if [ "$X" == "--help" -o "$X" == "--man" -o "$X" == "shelp" ]; then
+    $(dirname ${BASH_SOURCE[0]})/helper/manForScript ${BASH_SOURCE[0]}
+    exit 1
+  fi
+  if [ "$X" == "-s" -o "$X" == "--source" ]; then
+    OUTPUTSOURCE=1
+    REDOOPTIONS="$REDOOPTIONS -s";
+  fi
+  if [ "$X" == "-v" -o "$X" == "--verbose" ]; then
+    VERBOSE=1
+  fi
+  if [ "$X" == "-d" -o "$X" == "--debug" ]; then
+    DEBUG=1
+  fi
+  if [ "$X" == "-e" -o "$X" == "--errEcho" ]; then
+    ERRECHO=1
+  fi
+  if [ "$X" == "-p" -o "$X" == "--private" ]; then
+    PRIVATE=1
+    REDOOPTIONS="$REDOOPTIONS -p";
+  fi
+  if [ "$X" == "-x" -o "$X" == "--extra" ]; then
+    EXTRA=1
+  fi
+  if [ "$X" == "-b" -o "$X" == "--beta" ]; then
+    EXTRA=1
+  fi
+  #if [ "$Y" != ""  ]; then
+  shift;
+  #  XRAW=$1
+  #else
+  #  XRAW=$1
+  #fi
+  
+done
+
+####################################################################################
+####################################################################################
+####################################################################################
+####################################################################################
+
+CURRMACHINE="UNKNOWN"
+BASEHOSTNAME=$(hostname | cut -d. -f1)
+
+if [ "$BASEHOSTNAME" == "ccad" ]; 
+then 
+  CURRMACHINE="CCAD";
+fi
+
+if [  "$BASEHOSTNAME" == "biowulf" ]; 
+then 
+  CURRMACHINE="BIOWULF";
+fi
+
+if [  "$BASEHOSTNAME" == "helix" ]; 
+then 
+    CURRMACHINE="HELIX";
+fi
+
+if [ "$CURRMACHINE" == "UNKNOWN" ]; then
+
+  (>&2 echo "ERROR: Cannot determine current machine. Server not recognized!")
+  (>&2 echo "         hostname = $(hostname)");
+  (>&2 echo "         HOSTNAME = $HOSTNAME");
+  (>&2 echo "         BASEHOSTNAME = $BASEHOSTNAME");
+
+fi
+
+  export SWHENV_CURRMACHINE=$CURRMACHINE
+  if [ "$CURRMACHINE" == "CCAD" ]; then
+    export SWHENV_RESOURCEDIR=/mnt/nfs/gigantor/ifs/DCEG/Projects/CCSS/steve/resources/
+    export SWHENV_VAK_SOURCEDIR=/home/hartleys/UTILS/ScrapTesting/
+    export SWHENV_SHAREDMODULES=/mnt/nfs/gigantor/ifs/Shared/hartleys/modules/
+    export SWHENV_SHAREDMODULESBETA=/mnt/nfs/gigantor/ifs/Shared/hartleys/modulesBeta/vArmyKnifeBeta/
+      if [ "$PRIVATE" == "1" ]; then
+        export SWHENV_PRIVATE_MODULES=/home/hartleys/modules/
+        export SWHENV_PRIVATE_UTILDIR=/home/hartleys/UTILS/
+        export SWHENV_PRIVATE_SOFTWAREDIR=/DCEG/Projects/CCSS/steve/software-big/
+      fi
+      export SWHENV_QUEUEENGINE=SGE
+  fi
+  
+  if [ "$CURRMACHINE" == "BIOWULF" -o "$CURRMACHINE" == "HELIX" ]; then
+      export SWHENV_RESOURCEDIR=/data/hartleys/pub/resources/
+      export SWHENV_SHAREDMODULES=/data/hartleys/pub/modules/
+      export SWHENV_SHAREDMODULESBETA=/data/hartleys/pub/modulesBeta/vArmyKnifeBeta/
+      if [ "$PRIVATE" == "1" ]; then
+        export SWHENV_PRIVATE_MODULES=/home/hartleys/modules/
+        export SWHENV_PRIVATE_UTILDIR=/home/hartleys/UTILS/
+        export SWHENV_PRIVATE_SOFTWAREDIR=/home/hartleys/software/
+      fi
+  fi
+  
+  if [ "$CURRMACHINE" == "BIOWULF" ]; then
+      export SWHENV_QUEUEENGINE="SWARM
+  fi
+  
+  if [ "$CURRMACHINE" == "HELIX" ]; then
+      export SWHENV_QUEUEENGINE=NONE"
+  fi
+  
+#  if [ "$ERRECHO" == "1" ]; then
+#    (>&2 getCurrentLocation $REDOOPTIONS)
+#  fi
+
+####################################################################################
+####################################################################################
+####################################################################################
+####################################################################################
+
+source /etc/profile.d/modules.sh
+module use $SWHENV_SHAREDMODULES
+
+if [ "$BETA" == "1" ]; then
+  module use $SWHENV_SHAREDMODULESBETA
+fi
+
+if [ "$PRIVATE" == "1" ]; then
+  module use $SWHENV_PRIVATE_MODULES
+  if [ "$CURRMACHINE" == "CCAD" ]; then
+    module load steveQtool texinfo/6.3 scala sbt
+  fi
+  if [ "$CURRMACHINE" == "HELIX" ]; then
+    module load texinfo/6.6 sbt/0.13.11
+  fi
+fi
+
+
+if [ "$CURRMACHINE" == "CCAD" ]; then
+  STDLOAD="module load sge jdk/1.8.0_111 samtools vcftools R/3.3.0 gcc/4.8.4 shareMisc"
+  echo "$STDLOAD"
+  eval $STDLOAD
+  
+  if [ "$EXTRA" == "1" ]; then
+      EXTRALOAD="module load bcftools vcftools bedtools tabix bgzip samtools gatk snpsift"
+      echo "$EXTRALOAD"
+      eval $EXTRALOAD
+  fi
+fi
+
+if [ "$CURRMACHINE" == "HELIX" ]; then
+  STDLOAD="module load java/1.8.0_211 vcftools bedtools samtools GATK/3.8-1 QoRTs/1.3.6 python /data/hartleys/pub/software/shareMisc vArmyKnife"
+  echo "$STDLOAD"
+  eval $STDLOAD
+  
+  #if [ "$EXTRA" == "1" ]; then
+      #EXTRALOAD="module load bcftools vcftools bedtools tabix bgzip samtools gatk snpsift"
+      #echo "$EXTRALOAD"
+      #eval $EXTRALOAD
+  #fi
+fi
+
+

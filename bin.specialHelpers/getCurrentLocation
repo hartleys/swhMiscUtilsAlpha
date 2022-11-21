@@ -1,0 +1,263 @@
+#!/bin/bash
+
+#+SHORTDESC="Find current location"
+#+ HELPTEXT="Figures out which machine you are currently running on"$'\n'
+#++HELPTEXT=" "$'\n'
+#+ SYNTAXTEXT="getCurrentLocation"$'\n'
+#++SYNTAXTEXT="     (prints current location)"$'\n'
+#++SYNTAXTEXT="source <(getCurrentLocation -s) "$'\n'
+#++SYNTAXTEXT="     (sets useful environment variables and aliases based on which location it finds)"$'\n'
+#+ PARAMS="--help: displays syntax and help info."$'\n'
+#++PARAMS="--man: synonym for --help."$'\n'
+#++PARAMS="-s or --source: Instead of outputting the location and/or env vars, output a list of export commands and alias commands. Intended to be used with source. "$'\n'
+#++PARAMS="-v or --verbose: Output more info. "$'\n'
+#++PARAMS="-d or --debug: Output even more info. "$'\n'
+#++PARAMS="-e or --errEcho: Usually used with pipes and/or source. This causes the tool to output a copy of everything to stderr."$'\n'
+#++PARAMS="-p or --private: Adds additional env variables specificially for steve hartley."$'\n'
+#++PARAMS="-m or --moduleLoad: Adds lines that will load a standard module set."$'\n'
+#+ VERSION="0.0.5"
+
+CURRENT_SCRIPT_DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd -P )"
+
+if [ "$1" == "--help" -o "$1" == "--man" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript ${BASH_SOURCE[0]}
+  exit 1
+elif [ "$1" == "--manMarkdown" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript --markdown ${BASH_SOURCE[0]}
+  exit 1
+fi
+
+THIS_SCRIPT_DIRECTORY=$CURRENT_SCRIPT_DIR
+
+OUTPUTSOURCE=0;
+VERBOSE=0;
+DEBUG=0
+ERRECHO=0;
+PRIVATE=0;
+MODULELOAD=0;
+REDOOPTIONS="";
+
+while [ $# -gt 0 ];
+do
+
+  if [ "$1" == "-d" -o "$1" == "--debug" ]; then
+    DEBUG=1
+  fi
+  if [ "$1" == "-s" -o "$1" == "--source" ]; then
+    OUTPUTSOURCE=1
+    REDOOPTIONS="$REDOOPTIONS -s";
+    if [ "$DEBUG" == "1" ]; then (>&2 echo -n "   --source"); fi
+  fi
+  if [ "$1" == "-v" -o "$1" == "--verbose" ]; then
+    VERBOSE=1
+    if [ "$DEBUG" == "1" ]; then (>&2 echo -n "   --verbose"); fi
+  fi
+
+  if [ "$1" == "-e" -o "$1" == "--errEcho" ]; then
+    ERRECHO=1
+    if [ "$DEBUG" == "1" ]; then (>&2 echo -n "   --errEcho"); fi
+  fi
+  if [ "$1" == "-m" -o "$1" == "--moduleLoad" ]; then
+    MODULELOAD=1
+    if [ "$DEBUG" == "1" ]; then (>&2 echo -n "   --moduleLoad"); fi
+  fi
+  if [ "$1" == "-p" -o "$1" == "--private" ]; then
+    PRIVATE=1
+    REDOOPTIONS="$REDOOPTIONS -p";
+    if [ "$DEBUG" == "1" ]; then (>&2 echo -n "   --private"); fi
+  fi
+  
+  shift;
+done
+
+if [ "$DEBUG" == "1" ]; then
+  (>&2 echo "   hostname     = $(hostname)");
+  #(>&2 echo "   OUTPUTSOURCE = $OUTPUTSOURCE");
+  #(>&2 echo "   VERBOSE      = $VERBOSE");
+  #(>&2 echo "   DEBUG        = $DEBUG");
+fi
+
+#Figure out if you're on HELIX, Biowulf, Trek, or CCAD:
+#If you call this command as a command it will 
+#You can also call this using source to export various location-specific environment variables.
+
+CURRMACHINE="UNKNOWN"
+BASEHOSTNAME=$(hostname | cut -d. -f1)
+
+if [ "$BASEHOSTNAME" == "ccad" ]; 
+then 
+  CURRMACHINE="CCAD";
+fi
+
+if [ -d "/mnt/nfs/gigantor/ifs/Shared/hartleys" ]; 
+then 
+  CURRMACHINE="CCAD";
+fi
+
+if [  "$BASEHOSTNAME" == "biowulf" ]; 
+then 
+  CURRMACHINE="BIOWULF";
+fi
+
+if [ -d "/data/hartleys/pub/software" ];
+then
+  CURRMACHINE="BIOWULF";
+fi
+
+if [  "$BASEHOSTNAME" == "helix" ]; 
+then 
+  CURRMACHINE="HELIX";
+fi
+
+
+
+if [ "$CURRMACHINE" == "UNKNOWN" ]; then
+
+  (>&2 echo "ERROR: Cannot determine current machine. Server not recognized!")
+  (>&2 echo "         hostname = $(hostname)");
+  (>&2 echo "         HOSTNAME = $HOSTNAME");
+  (>&2 echo "         BASEHOSTNAME = $BASEHOSTNAME");
+  
+
+  exit 66;
+  
+fi
+
+if [ "$DEBUG" == "1" ]; then (>&2 echo "   CURRMACHINE=${CURRMACHINE}"); fi
+
+
+if [ "$OUTPUTSOURCE" == "1" ]; then
+
+  echo "export SWHENV_CURRMACHINE=$CURRMACHINE"
+  if [ "$CURRMACHINE" == "CCAD" ]; then
+      echo "export SWHENV_RESOURCEDIR=/mnt/nfs/gigantor/ifs/DCEG/Projects/CCSS/steve/resources/"
+     #echo "export SWHENV_VAK_SOURCEDIR=/home/hartleys/UTILS/ScrapTesting/"
+      echo "export SWHENV_SHAREDMODULES=/mnt/nfs/gigantor/ifs/Shared/hartleys/modules/"
+      echo "export SWHENV_SHAREDMODULESBETA=/mnt/nfs/gigantor/ifs/Shared/hartleys/modulesBeta/"
+      echo "export SWHENV_SHAREDSOFT=/mnt/nfs/gigantor/ifs/Shared/hartleys/software/"
+      echo "export SWHENV_UTILS=/mnt/nfs/gigantor/ifs/Shared/hartleys/software/shareMisc/"
+                   SWHENV_UTILS=/mnt/nfs/gigantor/ifs/Shared/hartleys/software/shareMisc/
+
+      if [ "$PRIVATE" == "1" ]; then
+        echo "export SWHENV_PRIVATE_MODULES=/home/hartleys/modules/"
+        echo "export SWHENV_PRIVATE_UTILDIR=/home/hartleys/UTILS/"
+        echo "export SWHENV_PRIVATE_SOFTWAREDIR=/DCEG/Projects/CCSS/steve/software-big/"
+      fi
+      if [ "$MODULELOAD" == "1" ]; then
+        echo "source /etc/profile.d/modules.sh";
+        echo 'module use $SWHENV_SHAREDMODULES'
+        if [ "$PRIVATE" == "1" ]; then
+          echo 'module use $SWHENV_SHAREDMODULESBETA'
+          echo 'module use $SWHENV_PRIVATE_MODULES'
+          echo 'module load sbt texinfo/6.3 gcc/4.8.4 steveQtool vArmyKnifeBeta'
+          echo 'export RESOURCE_DIR=$SWHENV_RESOURCEDIR'
+          echo 'export RESOURCEDIR=$RESOURCE_DIR'
+        else
+          echo "module load vArmyKnife"
+        fi
+        echo "module load jdk/1.8.0_111 sge R/3.3.0 shareMisc bedtools vcftools bcftools tabix bgzip python"
+      fi
+      SWHENV_QUEUEENGINE="SGE" 
+  fi
+  
+  if [ "$CURRMACHINE" == "BIOWULF" -o "$CURRMACHINE" == "HELIX" ]; then
+      echo "export SWHENV_RESOURCEDIR=/data/hartleys/pub/resources/"
+      echo "export SWHENV_SHAREDMODULES=/data/hartleys/pub/modules/"
+      echo "export SWHENV_SHAREDMODULESBETA=/data/hartleys/pub/modulesBeta/"
+      echo "export SWHENV_SHAREDSOFT=/data/hartleys/pub/software/"
+      echo "export SWHENV_UTILS=/data/hartleys/pub/software/shareMisc/"
+                   SWHENV_UTILS=/data/hartleys/pub/software/shareMisc/
+
+      if [ "$PRIVATE" == "1" ]; then
+        echo "export SWHENV_PRIVATE_MODULES=/home/hartleys/modules/"
+        echo "export SWHENV_PRIVATE_UTILDIR=/home/hartleys/UTILS/"
+        echo "export SWHENV_PRIVATE_SOFTWAREDIR=/home/hartleys/software/"
+      fi
+      if [ "$MODULELOAD" == "1" ]; then
+        echo "source /etc/profile.d/modules.sh";
+        echo "module use /usr/local/lmod/modulefiles/";
+        echo 'module use $SWHENV_SHAREDMODULES'
+        if [ "$PRIVATE" == "1" ]; then
+          echo 'module use $SWHENV_SHAREDMODULESBETA'
+          echo 'module use $SWHENV_PRIVATE_MODULES'
+          echo "module load vArmyKnifeBeta"
+          echo 'export RESOURCE_DIR=$SWHENV_RESOURCEDIR'
+          echo 'export RESOURCEDIR=$RESOURCE_DIR'
+        else
+          echo "module load vArmyKnife"
+        fi
+        echo "module load shareMisc java/1.8.0_92 vcftools bedtools python samtools"
+      fi
+  fi
+  
+  if [ "$CURRMACHINE" == "CCAD" ]; then
+      SWHENV_QUEUEENGINE="SGE"
+      echo 'function astat(){'
+      echo '  '"${SWHENV_UTILS}"'/bin.queueHelpers/estatSGE -s'
+      echo '}'
+      
+      echo 'function estatraw(){'
+      echo '  '"${SWHENV_UTILS}"'/bin.queueHelpers/estatSGE -e'
+      echo '}'
+      echo "export -f estatraw"
+      echo "export -f astat"
+      echo "export SWHENV_QUEUEENGINE_QUEUED=qw"
+      echo "export SWHENV_QUEUEENGINE_RUNNING=r"
+
+
+      
+  fi
+  
+  if [ "$CURRMACHINE" == "BIOWULF" ]; then
+      SWHENV_QUEUEENGINE="SWARM"
+      echo 'function astat(){'
+      echo '  squeue -u hartleys --format="%.18i %.30j %.2t %.6D %.20R %.20E" | sed "s/ \+/\t/g" | column -t'
+      echo '}'
+      
+      echo 'function estatraw(){'
+      echo '  squeue -u hartleys --format="%i %j %u %t %.M" | sed "s/ \+/\t/g" | tail -n+2'
+      echo '}'
+      echo "export -f estatraw"
+      echo "export -f astat"
+      echo "export SWHENV_QUEUEENGINE_QUEUED=PD"
+      echo "export SWHENV_QUEUEENGINE_RUNNING=R"
+
+  fi
+  
+  if [ "$CURRMACHINE" == "HELIX" ]; then
+      SWHENV_QUEUEENGINE="NONE" 
+  fi
+  
+  if [ "$ERRECHO" == "1" ]; then
+    (>&2 getCurrentLocation $REDOOPTIONS)
+  fi
+  
+  exit 0
+fi
+
+
+
+
+#(>&2 echo "TEST");
+
+
+if [ "$VERBOSE" == "0" -a "$OUTPUTSOURCE" == "0" ]; then
+  echo "$CURRMACHINE"
+  exit 0;
+fi
+
+if [ "$VERBOSE" == "1" -a "$OUTPUTSOURCE" == "0" ]; then
+  echo "$CURRMACHINE"
+  exit 0
+fi
+
+
+
+#(>&2 echo "TEST");
+
+
+
+
+
+
+

@@ -1,0 +1,51 @@
+#!/bin/bash
+
+#estat | tail -n+2 | awk '{ if ( $5 == "qw" ) print $1 }' | tr '\n' '|'
+
+#+SHORTDESC="Finds jobs that satisfy a predicate or option."
+#+ HELPTEXT="Looks at the job list, finds a list of jobs."$'\n'
+#++HELPTEXT="More Help Text"$'\n'
+#+ SYNTAXTEXT="allLinesTheSame filename"$'\n'
+#++SYNTAXTEXT="some command | allLinesTheSame"$'\n'
+#+ PARAMS="--help: displays syntax and help info."$'\n'
+#++PARAMS="--man: synonym for --help."$'\n'
+#++PARAMS=""$'\n'
+
+#+ VERSION="0.0.6"
+
+#todo:
+#    #++PARAMS="--jobidrange [jobid]-[jobid]: watch job with the given jobID range"$'\n'
+
+CURRENT_SCRIPT_DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd -P )"
+if [ "$1" == "--help" -o "$1" == "--man" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript ${BASH_SOURCE[0]}
+  exit 1
+elif [ "$1" == "--manMarkdown" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript --markdown ${BASH_SOURCE[0]}
+  exit 1
+fi
+
+INFILE=/dev/stdin
+if [ "$#" -gt 0 ]; then
+   INFILE=$1
+fi
+
+IS_FIRST_LINE=1
+FIRSTLINE="";
+IS_OK=1;
+while read LINE; do
+  if [ "${IS_FIRST_LINE}" == "1" ]; then
+    IS_FIRST_LINE=0;
+    FIRSTLINE=${LINE}
+  else
+    if [ "${LINE}" != "${FIRSTLINE}" ]; then
+       echo "0"
+       IS_OK=0;
+       break;
+    fi
+  fi
+done < <( cat $INFILE )
+
+if [ "${IS_OK}" == "1" ]; then
+  echo "1"
+fi

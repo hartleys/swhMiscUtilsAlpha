@@ -1,0 +1,7 @@
+shelp grep
+Help with grep
+
+   To find the line number that matches a specific grep:
+     zcat INFILE | grep -v -m1 -n "grepexpr" - | cut -f1 -d:
+
+

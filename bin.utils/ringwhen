@@ -1,0 +1,43 @@
+#!/bin/bash
+
+SLEEPTIME=1
+while [ "$#" -gt 1 ];
+do
+      if [ "$1" == "--sleepTime" -o "$1" == "-t" ];
+      then
+        shift;
+        SLEEPTIME=$1;
+      fi
+      shift;
+done
+
+EXPR="$1"
+
+tmpfile=$(mktemp /tmp/kettlewatch.XXXXXX)
+exec 3>"$tmpfile"
+rm $tmpfile
+
+echo '#!/bin/bash' >&3
+echo '' >&3
+echo 'NUMSEC=0;' >&3
+echo '' >&3
+echo 'while [ ! '"$EXPR"' ];' >&3
+echo 'then' >&3
+echo -n "."  >&3
+echo 'NUMSEC=$(( $NUMSEC + 1 ))' >&3
+echo 'NUMMODULOFIVE=$(( $NUMSEC % 5 ))' >&3
+echo 'if [ "$NUMMODULOFIVE" -eq 0 ]; then' >&3
+echo 'echo -n " ";' >&3
+echo 'NUMMODULOTWENTY=$(( $NUMSEC % 20 ))' >&3
+echo 'if [ "$NUMMODULOTWENTY" -eq 0 ]; then' >&3
+echo 'echo "($NUMSEC) [$(date)]";' >&3
+echo 'fi' >&3
+echo 'fi' >&3
+echo "sleep $SLEEPTIME" >&3
+echo 'done' >&3
+
+source /dev/fd/3 
+
+
+
+

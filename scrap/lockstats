@@ -1,0 +1,141 @@
+#!/bin/bash
+
+#estat | tail -n+2 | awk '{ if ( $5 == "qw" ) print $1 }' | tr '\n' '|'
+
+#+SHORTDESC="Finds jobs that satisfy a predicate or option."
+#+ HELPTEXT="Looks at the job list, finds a list of jobs."$'\n'
+#++HELPTEXT="More Help Text"$'\n'
+#+ SYNTAXTEXT="lockstats lock/dir/"$'\n'
+#+ PARAMS="--help: displays syntax and help info."$'\n'
+#++PARAMS="--man: synonym for --help."$'\n'
+#++PARAMS=""$'\n'
+
+
+#+ VERSION="0.0.6"
+
+#todo:
+#    #++PARAMS="--jobidrange [jobid]-[jobid]: watch job with the given jobID range"$'\n'
+
+CURRENT_SCRIPT_DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd -P )"
+if [ "$1" == "--help" -o "$1" == "--man" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript ${BASH_SOURCE[0]}
+  exit 1
+elif [ "$1" == "--manMarkdown" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript --markdown ${BASH_SOURCE[0]}
+  exit 1
+fi
+
+if [ "$SWHENV_QUEUEENGINE_QUEUED" == "" ]; then
+   SWHENV_QUEUEENGINE_QUEUED="qw";
+fi
+
+
+VERBOSE="0"
+JOBLIST="NONE";
+
+while [ "$#" -gt 0 ];
+do
+      if [ "$1" == "--verbose" -o "$1" == "-v" ]; then
+        VERBOSE="$(( $VERBOSE + 1 ))"
+      fi
+      if [ "$1" == "--jobList" -o "$1" == "--joblist" -o "$1" == "-j" ];   then
+        shift
+        JOBLIST=$1
+      fi
+      LOCKDIR=$1
+      shift;
+done
+
+if [[ "$VERBOSE" > "0" ]]; then
+  echo "STARTING"
+  echo "VERBOSE=$VERBOSE"
+fi
+
+LOCKDIR=$( echo $LOCKDIR | sed 's/\/$//g' )
+
+if [ ! -d "${LOCKDIR}" ]; then
+   if [ -d "locks/${LOCKDIR}" ]; then
+      LOCKDIR=locks/${LOCKDIR}
+   else
+      echo "ERROR: LOCK DIRECTORY NOT FOUND \"${LOCKDIR}\""
+   fi
+fi
+
+#tmpfile=$(mktemp /tmp/findjobs.XXXXXX)
+
+tmpfile=$(mktemp /tmp/estat2.XXXXXX)
+exec 3>"$tmpfile"
+rm $tmpfile
+
+ls ${LOCKDIR}/* | basenames | sed $'s/DONE./DONE\t/g' | sed $'s/RUNNING./RUNNING\t/g' | sed $'s/ERR./ERR\t/g' | sed 's/.txt//g' >&3
+
+#cat /dev/fd/3
+
+IDENT_CT=1;
+MAX_ITER=100; #prevent infinite loops with bad inputs?
+
+while [ $( cat /dev/fd/3 | cut -f2 | cut -d'.' -f1-${IDENT_CT} | allLinesTheSame ) == "1" -o "${IDENT_CT}" -gt "${MAX_ITER}" ]; do
+  IDENT_CT=$(( $IDENT_CT + 1 ))
+done
+
+#cat /dev/fd/3  | grep "^RUNNING" | cut -f2 | cut -d'.' -f${IDENT_CT}- | head -n10 | tr '\n' ','
+
+RUNNING_SET=$( cat /dev/fd/3  | grep "^RUNNING" | cut -f2 | cut -d'.' -f${IDENT_CT}- | shuf | head -n10 | tr '\n' ',' )
+DONE_SET=$( cat /dev/fd/3  | grep "^DONE" | cut -f2 | cut -d'.' -f${IDENT_CT}- | shuf | head -n10 | tr '\n' ','  )
+ERR_SET=$( cat /dev/fd/3  | grep "^ERR" | cut -f2 | cut -d'.' -f${IDENT_CT}- | shuf | head -n10 | tr '\n' ','  ) 
+
+RUNNING_CT=$( cat /dev/fd/3 | cut -f1 | grep -c "^RUNNING" )
+DONE_CT=$( cat /dev/fd/3 | cut -f1 | grep -c "^DONE" )
+ERR_CT=$( cat /dev/fd/3 | cut -f1 | grep -c "^ERR" )
+
+echo "RUNNING"$'\t'"${RUNNING_CT}"$'\t'"$RUNNING_SET"
+echo "DONE"$'\t'"${DONE_CT}"$'\t'"${DONE_SET}"
+echo "ERR"$'\t'"${ERR_CT}"$'\t'"${ERR_SET}"
+
+if [ "${JOBLIST}" != "NONE" ]; then
+  NOJOB_CT=$( cat ${JOBLIST} | egrep -v $( cat /dev/fd/3  | cut -f2 | cut -d'.' -f${IDENT_CT}- | tr '\n' '|' | sed 's/|$//g' ) | grep -c "^" );
+  NOJOB_SET=$( cat ${JOBLIST} | egrep -v $( cat /dev/fd/3  | cut -f2 | cut -d'.' -f${IDENT_CT}- | tr '\n' '|' | sed 's/|$//g') | shuf | head -n10 | tr '\n' ',' );
+  echo "NOJOB"$'\t'"${NOJOB_CT}"$'\t'"${NOJOB_SET}"
+fi
+
+
+LASTDIR=$( echo $LOCKDIR | awk -F'/' '{ print $NF }' )
+
+if [ -d "logs/$LASTDIR" ]; then
+   if [ "${RUNNING_CT}" -gt "0" ]; then
+     ls --sort=time logs/${LASTDIR}/* | grep "$( echo $RUNNING_SET  | cut -f1 -d',' )" | head -n1  | sed $'s/^/RUNNING\t/g'
+   fi
+   if [ "${RUNNING_CT}" -gt "1" ]; then
+     ls --sort=time logs/${LASTDIR}/* | grep "$( echo $RUNNING_SET  | cut -f2 -d',' )" | head -n1  | sed $'s/^/RUNNING\t/g'
+   fi
+   if [ "${RUNNING_CT}" -gt "2" ]; then
+     ls --sort=time logs/${LASTDIR}/* | grep "$( echo $RUNNING_SET  | cut -f3 -d',' )" | head -n1  | sed $'s/^/RUNNING\t/g'
+   fi
+   
+   if [ "${DONE_CT}" -gt "0" ]; then
+     ls --sort=time logs/${LASTDIR}/* | grep "$( echo $DONE_SET | cut -f1 -d',' )" | head -n1  | sed $'s/^/DONE\t/g'
+   fi
+   if [ "${DONE_CT}" -gt "1" ]; then
+     ls --sort=time logs/${LASTDIR}/* | grep "$( echo $DONE_SET | cut -f2 -d',' )" | head -n1  | sed $'s/^/DONE\t/g'
+   fi
+   if [ "${DONE_CT}" -gt "2" ]; then
+     ls --sort=time logs/${LASTDIR}/* | grep "$( echo $DONE_SET | cut -f3 -d',' )" | head -n1  | sed $'s/^/DONE\t/g'
+   fi
+   
+   if [ "${ERR_CT}" -gt "0" ]; then
+     ls --sort=time logs/${LASTDIR}/* | grep "$( echo $ERR_SET | cut -f1 -d',' )" | head -n1 | sed $'s/^/ERR\t/g'
+   fi
+   if [ "${ERR_CT}" -gt "1" ]; then
+     ls --sort=time logs/${LASTDIR}/* | grep "$( echo $ERR_SET | cut -f2 -d',' )" | head -n1  | sed $'s/^/ERR\t/g'
+   fi
+   if [ "${ERR_CT}" -gt "2" ]; then
+     ls --sort=time logs/${LASTDIR}/* | grep "$( echo $ERR_SET | cut -f3 -d',' )" | head -n1  | sed $'s/^/ERR\t/g'
+   fi
+
+   #ls --sort=time logs/${LASTDIR}/* | grep "$( echo $RUNNING_SET | tr ',' '\n' | cut -f2 -d',' )" | head -n1 
+   #ls --sort=time logs/${LASTDIR}/* | grep "$( echo $RUNNING_SET | tr ',' '\n' | cut -f3 -d',' )" | head -n1 
+
+else
+   echo "WARNING: LOG FILES NOT FOUND AT \"logs/$LASTDIR\""
+fi
+

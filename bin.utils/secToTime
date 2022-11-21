@@ -1,0 +1,111 @@
+#!/bin/bash
+
+
+#TODO-WRITE-HELPDOC
+#+SHORTDESC="TODO-WRITE-HELPDOC"
+#+ HELPTEXT="..."$'\n'
+#++HELPTEXT="More Help Text"$'\n'
+#+ SYNTAXTEXT="... [options]"$'\n'
+#+ PARAMS="--help: displays syntax and help info."$'\n'
+#++PARAMS="--man: synonym for --help."$'\n'
+#++PARAMS="--verbose or -v: Increase verbosity. Currently Nonfunctional."$'\n'
+#++PARAMS="--hours or -h: Report time in hours:minutes:sec. Do not count days."$'\n'
+#++PARAMS="--days or -d: Always report days in format Xdays.hours:minutes:sec. Note that the default is to report this way only if the duration is longer than 1 day."$'\n'
+#++PARAMS="--millis or -m: Input is in MILLISECONDS instead of seconds. Report in form hours:minutes:sec.millis"$'\n'
+#++PARAMS="--full or --all or -f or -a: equivalent to --days --millis. Note that input must be in milliseconds."$'\n'
+#+ VERSION="0.1.0"
+
+CURRENT_SCRIPT_DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd -P )"
+if [ "$1" == "--help" -o "$1" == "--man" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript ${BASH_SOURCE[0]}
+  exit 1
+elif [ "$1" == "--manMarkdown" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript --markdown ${BASH_SOURCE[0]}
+  exit 1
+fi
+
+VERBOSE=0
+HOURS=0
+DAYS=0
+MILLI=0
+
+while [ "$#" -gt 1 ];
+do
+      if [ "$1" == "--verbose" -o "$1" == "-v" ];
+      then
+        VERBOSE="$(( $VERBOSE + 1 ))"
+      fi
+      if [  "$1" == "--hours" -o "$1" == "--hour" -o "$1" == "-h" ];
+      then
+        HOURS="1"
+      fi
+      if [  "$1" == "--days" -o "$1" == "--day" -o "$1" == "-d" ];
+      then
+        DAYS="1"
+      fi
+      if [  "$1" == "--millis" -o "$1" == "--milli" -o "$1" == "-m" ];
+      then
+        MILLIS="1"
+      fi
+      if [  "$1" == "--full" -o "$1" == "-f"  -o "$1" == "-a"  -o "$1" == "--all" ];
+      then
+        MILLIS="1"
+        DAYS="1"
+      fi
+      shift;
+done
+
+MILLI_STRING=""
+if [ "$MILLIS" == "1" ]; then
+   MILLI_TOTAL=$1
+   SEC_TOTAL=$(( $MILLI_TOTAL / 1000 ))
+   MILLI_REM=$(( $MILLI_TOTAL % 1000 ))
+   MILLI_STRING=$( printf "%03d" $MILLI_REM );
+   MILLI_STRING=".${MILLI_STRING}"
+else 
+   SEC_TOTAL=$1
+fi
+
+
+MIN_TOTAL=$(( ${SEC_TOTAL} / 60 ))
+SEC_REM=$(( ${SEC_TOTAL} % 60 ))
+HOUR_TOTAL=$(( ${MIN_TOTAL} / 60 ))
+MIN_REM=$(( ${MIN_TOTAL} % 60 ))
+
+HOUR_REM=$HOUR_TOTAL
+DAYS_STRING="";
+DAYS_TOTAL=$(( $HOUR_TOTAL / 24 ));
+if [ "$DAYS" == "1" ]; then
+      HOUR_REM=$(( $HOUR_TOTAL % 24 ))
+      DAYS_STRING=$( printf "%01d" $DAYS_TOTAL )
+      DAYS_STRING="${DAYS_STRING}days."
+else
+   if [ "$HOURS" == "1" -o "$DAYS_TOTAL" -eq "0" ]; then
+      HOUR_REM=$HOUR_TOTAL      
+   else
+      HOUR_REM=$(( $HOUR_TOTAL % 24 ))
+      DAYS_STRING=$( printf "%01d" $DAYS_TOTAL )
+      DAYS_STRING="${DAYS_STRING}days."
+   fi
+fi
+
+HOUR_STRING=$( printf "%02d" $HOUR_REM )
+MIN_STRING=$( printf "%02d" $MIN_REM )
+SEC_STRING=$( printf "%02d" $SEC_REM )
+
+echo "${DAYS_STRING}${HOUR_STRING}:${MIN_STRING}:${SEC_STRING}${MILLI_STRING}"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,14 @@
+#!/usr/bin/env python
+from __future__ import print_function
+
+import sys
+
+inf = sys.stdin;
+out = sys.stdout;
+
+
+for line in inf:
+    out.write( line.upper() )
+
+
+out.close()

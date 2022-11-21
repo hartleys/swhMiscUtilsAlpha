@@ -1,0 +1,139 @@
+#!/bin/bash
+
+#+SHORTDESC="Get job duration from logfiles."
+#+ HELPTEXT="Get job duration and timestamps using steve hartley's standardized log file format."$'\n'
+#+ SYNTAXTEXT="getLogTimeStamps log/blah/*_blah.stdout"$'\n'
+#+ PARAMS="--fullPath : Emit the full path for the filename"$'\n'
+#++PARAMS="--tab : Use tab-delimiters instead of fixed-width tabulation"$'\n'
+#++PARAMS="--mostRecentOnly : collapse multiple jobs with the same job name but different jobIDs, then pick the most recent one. Also lists the number of jobs."$'\n'
+#++PARAMS="--sort : Sort in descending order by duration"$'\n'
+#+ VERSION="0.0.1"
+
+echoerr() { echo "$@" 1>&2; }
+
+CURRENT_SCRIPT_DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd -P )"
+if [ "$1" == "--help" -o "$1" == "--man" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript ${BASH_SOURCE[0]}
+  exit 1
+elif [ "$1" == "--manMarkdown" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript --markdown ${BASH_SOURCE[0]}
+  exit 1
+fi
+
+FULLPATH=0;
+PRINT_FIXED_WIDTH="1"
+ONLY_MOST_RECENT="0"
+SORTED="0"
+while [ "${1:0:1}" == "-" ]; do
+   if [ "$1" == "-f" -o "$1" == "--fullPath" ]; then
+      FULLPATH=1
+      shift;
+   fi
+   if [ "$1" == "-t" -o "$1" == "--tab" ]; then
+      PRINT_FIXED_WIDTH=0
+      shift;
+   fi
+   if [ "$1" == "--mostRecentOnly" ]; then
+      ONLY_MOST_RECENT=1
+      shift;
+   fi
+   if [ "$1" == "-s" -o "$1" == "--sort" -o "$1" == "--sorted" ]; then
+      SORTED=1
+      shift;
+   fi
+done
+
+#echoerr "NUM_PARAMS=$#"
+#echoerr "CURR_PARAM=$1"
+
+tmpfile=$(mktemp /tmp/glts1.XXXXXX)
+exec 3>"$tmpfile"
+rm $tmpfile
+
+tmpfile=$(mktemp /tmp/glts2.XXXXXX)
+exec 4>"$tmpfile"
+rm $tmpfile
+
+if [ "$#" == "0" -o "$1" == "-" ]; then
+   cat /dev/stdin >&3   
+else
+   while [ "$#" -gt 0 ]; do
+      LOGFILE=$1
+      echo $LOGFILE
+      shift;
+   done >&3   
+fi
+
+#echo "FD3:";
+#cat /dev/fd/3
+#exit 1
+#while read LOGFILE; do
+#   echo "LOGFILE=$LOGFILE"
+#done < /dev/fd/3
+#exit 1
+
+if [ "$ONLY_MOST_RECENT" == "1" ]; then
+  while read LOGFILE; do
+    LOGDIR=$( dirname $LOGFILE );
+    LOGNAME=$( basename $LOGFILE );
+    FILENAME=$( echo $LOGNAME | cut -f2- -d "_" );
+    echo "$( ls --sort=time ${LOGDIR}/*_${FILENAME} | head -n1 )"$'\t'"$( ls --sort=time ${LOGDIR}/*_${FILENAME} | grep -c '^' )"$'\t'"${FILENAME}"
+  done < /dev/fd/3 | sort -k3 | uniq --skip-fields=2  >&4
+else
+  cat /dev/fd/3 >&4
+fi
+
+#echo $'A1\tx\tA\nA2\tx\tA\nB1\tx\tB\nC1\tx\tC\nD1\tx\tD\nB2\tx\tB' | sort -k3 | uniq --skip-fields=2
+
+#echoerr "TEST:"
+#cat /dev/fd/4 | head -n10
+#echoerr "----"
+#exit 1
+
+while read LOGFILE LOGFILECOUNT LOGFILEID; do
+#echoerr "STARTING: $LOGFILE"
+   if [ ! -f "$LOGFILE" ]; then
+#echoerr "LOGFILE NOT FOUND: $LOGFILE"
+     LOGFILE_PRINT=$LOGFILE;
+     if [ "$FULLPATH" == "0" ]; then
+        LOGFILE_PRINT=$( basename $LOGFILE .stdout )
+     fi
+     echo "$LOGFILE_PRINT"$'\tNA\tNA\tNA'
+   else
+#echoerr "LOGFILE FOUND: $LOGFILE"
+     LOGFILE_PRINT=$LOGFILE;
+     if [ "$FULLPATH" == "0" ]; then
+        LOGFILE_PRINT=$( basename $LOGFILE .stdout )
+     fi
+     LOGFILE_FULL=""
+     if [ "$LOGFILEID" != "" ]; then
+        LOGFILE_FULL=$LOGFILE_PRINT
+        LOGFILE_PRINT=$LOGFILEID
+     fi
+     LOGFILE_MODIFY_SEC=$( date -r "$LOGFILE" "+%s" );
+     LOGFILE_STARTLINE_SEC=$( date --date="$( head -n3 "$LOGFILE" | tail -n1 )" "+%s" )
+     LOGFILE_MODIFY_TS=$( date -r "$LOGFILE" );
+     LOGFILE_STARTLINE_TS=$( date --date="$( head -n3 "$LOGFILE" | tail -n1 )" )
+#echoerr "STEP 1"
+#echoerr "LOGFILE_TIMESTAMP_LINE=$( head -n3 $LOGFILE | tail -n1 )"
+#echoerr "LOGFILE_MODIFY_TS=$LOGFILE_MODIFY_TS"
+#echoerr "LOGFILE_STARTLINE_TS=$LOGFILE_STARTLINE_TS"
+     LOGFILE_MODIFY_TIMESTAMP=$( date --date="${LOGFILE_MODIFY_TS}" "+%Y.%m.%d.%H%M%S")
+     LOGFILE_STARTLINE_TIMESTAMP="NA";
+     DURATION="NA";
+     DURATION_SEC="0";
+#echoerr "STEP 3"
+     if [ ${LOGFILE_STARTLINE_SEC} != "" ]; then
+       LOGFILE_STARTLINE_TIMESTAMP=$( date --date="${LOGFILE_STARTLINE_TS}" "+%Y.%m.%d.%H%M%S")
+       DURATION_SEC=$(( $LOGFILE_MODIFY_SEC - $LOGFILE_STARTLINE_SEC )) 
+       DURATION=$( textifyDuration $DURATION_SEC )
+     fi
+#echoerr "STEP 4"                
+     echo "${LOGFILE_PRINT}"$'\t'"${LOGFILE_STARTLINE_TIMESTAMP}"$'\t'"${LOGFILE_MODIFY_TIMESTAMP}"$'\t'"${DURATION}"$'\t'"${DURATION_SEC}"$'\t'"${LOGFILECOUNT}"$'\t'"${LOGFILE_FULL}"
+   fi
+done < /dev/fd/4 | runIfBoolean $SORTED sort -k5 -n | runIfBoolean $PRINT_FIXED_WIDTH delim2fixedFixed
+
+
+# echo $'TEST\nME' | runIfBoolean 1 sed 's/^/BOOP /g'
+
+

@@ -1,0 +1,37 @@
+#!/bin/bash
+
+#+SHORTDESC="Searches for windows-formatted files (ie, files with carriage returns)"
+#+ HELPTEXT=""$'\n'
+#++HELPTEXT=" "$'\n'
+#+ SYNTAXTEXT="fixWin"$'\n'
+#++SYNTAXTEXT=""$'\n'
+#++SYNTAXTEXT="fixWin "$'\n'
+#++SYNTAXTEXT="     (print help on topic)"$'\n'
+#+ PARAMS="--help: displays syntax and help info."$'\n'
+#++PARAMS="--man: synonym for --help."$'\n'
+#+ VERSION="0.0.5"
+
+##input_file="${1:-/dev/stdin}"
+
+
+CURRENT_SCRIPT_DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd -P )"
+if [ "$1" == "--help" -o "$1" == "--man" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript ${BASH_SOURCE[0]}
+  exit 1
+elif [ "$1" == "--manMarkdown" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript --markdown ${BASH_SOURCE[0]}
+  exit 1
+fi
+
+
+CURRENT_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+echo "Script is not complete. Do not use."
+
+exit 1
+
+
+
+
+
+

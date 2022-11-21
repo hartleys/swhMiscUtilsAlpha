@@ -1,0 +1,59 @@
+#!/bin/bash
+
+#+SHORTDESC="Read a text file and convert it to a comma delimited list for bash processing."
+#+ HELPTEXT="returns a single line of text with a delimited list from the given file"$'\n'
+#++HELPTEXT=" "$'\n'
+#+ SYNTAXTEXT="MYLIST=\$(file2list filename.txt)"$'\n'
+#++SYNTAXTEXT="(sets variable MYLIST to a comma delimited list)"$'\n'
+#+ PARAMS="--help: displays syntax and help info."$'\n'
+#++PARAMS="--man: synonym for --help."$'\n'
+#++PARAMS="-d x or --delim x: make x the delimiter, by default it is a comma "$'\n'
+#++PARAMS="-c x or --col x: pull only column x, starting from 1. Default is 1. Set to 0 to use the entire line."$'\n'
+#++PARAMS="-v or --verbose: add verbose error reporting"$'\n'
+#+ VERSION="0.0.5"
+
+CURRENT_SCRIPT_DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd -P )"
+if [ "$1" == "--help" -o "$1" == "--man" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript ${BASH_SOURCE[0]}
+  exit 1
+elif [ "$1" == "--manMarkdown" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript --markdown ${BASH_SOURCE[0]}
+  exit 1
+fi
+
+DELIM=","
+COLNUM="1"
+VERBOSE="0"
+
+while [ "$#" -gt 1 ];
+do
+      if [ "$1" == "--delim" -o "$1" == "-d" ];
+      then
+        shift;
+        DELIM="$1";
+      fi
+      if [ "$1" == "-c" -o "$1" == "--col" ];
+      then
+        shift;
+        COLNUM="$1";
+      fi
+      if [ "$1" == "-v" -o "$1" == "--verbose" ];
+      then
+        VERBOSE="1";
+      fi
+      shift;
+done
+
+if [ "$VERBOSE" == "1"  ]; then
+  (>&2 echo "   DELIM  = \"${DELIM}\"");
+  (>&2 echo "   COLNUM = \"${COLNUM}\"");
+fi
+
+FILENAME=$1
+
+if [ "0" == "$COLNUM" ]; then
+  echo $(cat "$FILENAME" | grep -v "^$" | grep -v "^#" | tr '\n' "$DELIM" | sed "s/${DELIM}$//g" )
+else
+  echo $(cat "$FILENAME" | grep -v "^$" | grep -v "^#" | cut -f"${COLNUM}" | tr '\n' "$DELIM" | sed "s/${DELIM}$//g" )
+fi
+

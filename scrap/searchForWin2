@@ -1,0 +1,48 @@
+#!/bin/bash
+
+#+SHORTDESC="Searches for windows-formatted files (ie, files with carriage returns)"
+#+ HELPTEXT=""$'\n'
+#++HELPTEXT=" "$'\n'
+#+ SYNTAXTEXT="searchForWin"$'\n'
+#++SYNTAXTEXT=""$'\n'
+#++SYNTAXTEXT="searchForWin "$'\n'
+#++SYNTAXTEXT="     (print help on topic)"$'\n'
+#+ PARAMS="--help: displays syntax and help info."$'\n'
+#++PARAMS="--man: synonym for --help."$'\n'
+#+ VERSION="0.0.5"
+
+if [ "$1" == "--help" -o "$1" == "--man" -o "$1" == "shelp" ]; then
+  $(dirname ${BASH_SOURCE[0]})/helper/manForScript ${BASH_SOURCE[0]}
+  exit 1
+fi
+
+CURRENT_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+ALLFILES=false
+
+FILEMATCH=$1
+CHECKDIR=$2
+
+if [ "$CHECKDIR" == "" ]; then
+  CHECKDIR=""
+fi
+
+while read FN; \
+do
+  grep -l $'\r' "$FN"
+done < <( while read FILENAME; \
+do \
+  FILETYPE=$( file -i "$FILENAME" | sed 's/[[:print:]]*\:[[:space:]][[:space:]]*\([[:graph:]]*\)\/[[:print:]]*$/\1/' ) ; \
+  if [ "$FILETYPE" == "text" ]; then \
+     echo $FILENAME; \
+  fi; \
+done < <( find $CHECKDIR $FILEMATCH -type f -exec grep -l $'\r' {} \; ) \
+)
+
+#find $CHECKDIR $FILEMATCH -type f -exec grep -l $'\r' {} \;
+#while read FN; \
+#do
+#
+#done < <( 
+#)
+#file -i "v018.p1.p1.chr9.aa.vcf.gz" | sed 's/[[:print:]]*\:[[:space:]][[:space:]]*\([[:graph:]]*\)\/[[:print:]]*$/\1/'

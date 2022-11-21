@@ -1,0 +1,65 @@
+shelp misc
+Misc help on various topics
+
+   To write a tab character to console: $'\t'
+   
+   To read from stdin:
+     < /dev/stdin
+   
+   To read from the first param OR stdin:
+     input_file="${1:-/dev/stdin}"
+
+   To get the directory containing the current script:
+     CURRENT_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+   To get the number of arguments in a bash script:
+      "$#"
+   So to test if there are at least 1 argument:
+      if [ $# -gt 0 ]; then
+          #do stuff
+      fi
+
+   To echo to stderr:
+      (>&2 echo "error")
+
+   To find files containing given text:
+      find FILES-TO-CHECK -type f -exec grep -H 'TEXT-TO-FIND' {} \;
+
+   To start the ssh-agent:
+     eval $(ssh-agent -s)
+     ssh-add ~/.ssh/id_rsa
+
+   To kill all stopped jobs:
+     kill `jobs -ps`
+
+   To recursively change all directory permissions:
+     find ./ -type d -exec chmod 755 {} \;
+     find ./ -type d -exec chmod u=rwx,go=rx {} \;
+     find ./ -type d -exec chmod 777 {} \;
+
+   Useful "find" options:
+     find ./ -type f -maxdepth 1
+   
+     -cmin -1       file was modified less than 1 minute ago
+     -cmin +1       file was modified more than 1 minute ago
+     
+   To copy files with rsync:
+      rsync -a /old/location/*.txt /new/location/
+   To copy a directory entire:
+      rsync -a /old/location/dir   /new/location
+   To copy directory contents:
+      rsync -a /old/location/dir/   /new/location/dir/
+   The -a option preserves all file metadate (date modified, etc)
+
+
+   perform arithmatic:
+      sum up column 2 of file:
+         cat myfile.txt | cut -f2 | tr '\n' '+' | bc
+
+   To get first 3 characters of a string:
+      country="portugal"
+      firstThree=${country::3}
+   Or get the last 3 characters of a string:
+      lastThree=${country: -3}
+   Or get 2 letters starting at the fifth letter:
+      lastThree=${country: 4: 2}

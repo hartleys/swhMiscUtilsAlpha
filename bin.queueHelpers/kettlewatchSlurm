@@ -1,0 +1,118 @@
+#!/bin/bash
+
+#estat | tail -n+2 | awk '{ if ( $5 == "qw" ) print $1 }' | tr '\n' '|'
+#squeue -u hartleys -o "%.18i %.30j %.2t %.6D %R"
+
+#+SHORTDESC="Watches the queue."
+#+ HELPTEXT="Watches the SGE queue for specific jobs and rings a bell when those jobs are submitted"$'\n'
+#++HELPTEXT="More Help Text"$'\n'
+#+ SYNTAXTEXT="kettlewatch [options]"$'\n'
+#+ PARAMS="--help: displays syntax and help info."$'\n'
+#++PARAMS="--man: synonym for --help."$'\n'
+#++PARAMS="-r: Watch running job instead of queued job"$'\n'
+#++PARAMS="-N <regex>: watch job with name matching the supplied regular expression."$'\n'
+#++PARAMS="-j <jobid>: watch job with the given jobID."$'\n'
+#+ VERSION="0.0.6"
+
+CURRENT_SCRIPT_DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd -P )"
+if [ "$1" == "--help" -o "$1" == "--man" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript ${BASH_SOURCE[0]}
+  exit 1
+elif [ "$1" == "--manMarkdown" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript --markdown ${BASH_SOURCE[0]}
+  exit 1
+fi
+
+
+JID=""
+WATCHRUN="PD";
+WATCHGREP=".*"
+
+while [ "$#" -gt 0 ];
+do
+      if [ "$1" == "-N" ];
+      then
+        shift;
+        WATCHGREP=$1;
+      fi
+      if [ "$1" == "-j" ];
+      then
+        shift;
+        JID=$1;
+      fi
+      if [ "$1" == "-r" ]; then
+        WATCHRUN="r";
+      fi
+      shift;
+done
+
+tmpfile=$(mktemp /tmp/kettlewatch.XXXXXX)
+exec 3>"$tmpfile"
+rm $tmpfile
+if [ "$JID" == "" ];
+then
+  squeue -u hartleys -o "%.18i %.30j %.2t %.6D %R" | tail -n+2 | tr -s ' ' >&3
+else
+  squeue -u hartleys -o "%.18i %.30j %.2t %.6D %R" | tail -n+2 | tr -s ' ' | awk '{ if ( $1 == '"$JID"') print }' >&3
+fi
+
+WATCHCT=$(cat /dev/fd/3 | awk '{ if ( $3 == "'"$WATCHRUN"'" && $2 ~ /'"$WATCHGREP"'/) print $1 }' | grep -c '^')
+
+if [ "$WATCHCT" -eq 0 ]; then
+    echo "-----------------------------------------------------";
+    echo "------------------Done Waiting!----------------------";
+    while read line
+    do
+      echo "$line"
+    done < <( squeue -u hartleys -o "%.18i %.30j %.2t %.6D %R" )
+    bellRing
+    exit 0;
+fi
+
+WATCHLIST=$(cat /dev/fd/3 | awk '{ if ( $3 == "'"$WATCHRUN"'" && $2 ~ /'"$WATCHGREP"'/ ) print $1 }' | tr '\n' '|' )
+WATCHLIST=${WATCHLIST:0:${#WATCHLIST}-1}
+
+echo "Waiting for:"
+while read line
+do
+  echo "$line"
+done < <( cat /dev/fd/3 | awk '{ if ( $3 == "'"$WATCHRUN"'" && $2 ~ /'"$WATCHGREP"'/ ) print }' )
+
+echo "-----------------------------------------------------";
+
+NUMSEC=0;
+
+while true
+do
+  NEWCT=$(squeue -u hartleys -o "%.18i %.30j %.2t %.6D %R" | tail -n+2 | tr -s ' ' | awk '{ if ( $3 == "'"$WATCHRUN"'" ) print }' | egrep -c "$WATCHLIST");
+  #echo "Comparing \"$NEWCT\""
+  if [ "$NEWCT" -ne "$WATCHCT" ]; then
+    echo "! [$(date)]"
+    echo "------------------Done Waiting!----------------------";
+    while read line
+    do
+      echo "$line"
+    done < <( squeue -u hartleys -o "%.18i %.30j %.2t %.6D %R" )
+    bellRing
+    exit 0;
+  fi
+  echo -n "."
+  NUMSEC=$(( $NUMSEC + 1 ))
+  NUMMODULOFIVE=$(( $NUMSEC % 5 ))
+  
+  if [ "$NUMMODULOFIVE" -eq 0 ]; then
+    echo -n " ";
+    NUMMODULOTWENTY=$(( $NUMSEC % 20 ))
+    if [ "$NUMMODULOTWENTY" -eq 0 ]; then
+      echo "($NUMSEC) [$(date)]";
+      if [ "$(( $NUMSEC % 100 ))" -eq 0 ]; then
+        echo "Still waiting for:";
+        cat <(squeue -u hartleys -o "%.18i %.30j %.2t %.6D %R" | tail -n+2 | tr -s ' ' | awk '{ if ( $3 == "'"$WATCHRUN"'" ) print }')
+      fi
+    fi
+  fi
+
+  
+  sleep 1;
+done
+

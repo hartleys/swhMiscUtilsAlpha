@@ -1,0 +1,13 @@
+#!/bin/bash
+
+#TODO-WRITE-HELPDOC
+
+FILENAME="${1:-/dev/stdin}"
+
+if [ ${FILENAME: -3} == ".gz" ];
+then
+  zcat $FILENAME | grep -m1 "^#[^#]" | tr '\t' '\n'  | tail -n+10
+else
+  cat $FILENAME | grep -m1 "^#[^#]" | tr '\t' '\n'   | tail -n+10
+fi
+

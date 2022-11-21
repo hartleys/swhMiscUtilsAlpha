@@ -1,0 +1,46 @@
+#!/bin/bash
+
+#+SHORTDESC="gets column numbers"
+#+ HELPTEXT=""$'\n'
+#+ SYNTAXTEXT="getColumnNums"$'\n'
+#+ PARAMS=""
+#+ VERSION="0.0.1"
+
+
+CURRENT_SCRIPT_DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd -P )"
+if [ "$1" == "--help" -o "$1" == "--man" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript ${BASH_SOURCE[0]}
+  exit 1
+elif [ "$1" == "--manMarkdown" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript --markdown ${BASH_SOURCE[0]}
+  exit 1
+fi
+
+DELIM=$'\t'
+LIMIT=NONE
+while [ "$#" -gt 1 ];
+do
+      if [ "$1" == "--delim" -o "$1" == "-d" ];
+      then
+        shift;
+        DELIM=$1;
+      fi
+      if [ "$1" == "--limit" -o "$1" == "-l" ];
+      then
+        shift;
+        LIMIT=$1;
+      fi
+
+      shift;
+done
+
+if [ "$LIMIT" == "NONE" ]; then
+  cat /dev/stdin | head -n1 | tr "${DELIM}" '\n' | nl -w3
+else
+  cat /dev/stdin | head -n1 | tr "${DELIM}" '\n' | nl -w3 | head -n${LIMIT}
+fi
+
+
+
+
+

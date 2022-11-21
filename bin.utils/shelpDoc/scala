@@ -1,0 +1,6 @@
+shelp scala
+Help with scala
+   
+   To import jar to CLASSPATH:
+   
+   :require /mnt/nfs/gigantor/ifs/DCEG/Home/hartleys/UTILS/ScrapTesting/target/scala-2.12/testingUtils.jar

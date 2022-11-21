@@ -1,0 +1,50 @@
+#!/bin/bash
+
+#+SHORTDESC="Grabs a file until it hits a match."
+#+ HELPTEXT="..."$'\n'
+#++HELPTEXT="More Help Text"$'\n'
+#+ SYNTAXTEXT="grepUntil [grep options] myfile.txt"$'\n'
+#+ PARAMS="..."$'\n'
+#+ VERSION="0.0.5"
+
+CURRENT_SCRIPT_DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd -P )"
+if [ "$1" == "--help" -o "$1" == "--man" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript ${BASH_SOURCE[0]}
+  exit 1
+elif [ "$1" == "--manMarkdown" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript --markdown ${BASH_SOURCE[0]}
+  exit 1
+fi
+
+TEGREPSTAT=${@: -2:1}
+INFILE=${@: -1}
+
+DELIM=$'\t'
+DEBUGMODE=0;
+
+while [ "$#" -ge 1 ]; do
+   if [ "$1" == "-d" ]; then
+      shift;
+      DELIM=$1;
+   fi
+   if [ "$1" == "--debugMode" ]; then
+      DEBUGMODE=1;
+   fi
+   shift;
+done
+
+#TITLELINE=$(IFS='' && read TITLELINE && echo -e $TITLELINE)
+#SELECTED_COLUMNS=$(file2list <(echo -e $TITLELINE | tr "${DELIM}" '\n' | egrep --line-number "${TEGREPSTAT}" | cut -f1 -d':'))
+#if [ "$DEBUGMODE" == "1" ]; then
+#   (>&2 echo -e "TITLELINE=${TITLELINE}")
+#   (>&2 echo "SELECTED_COLUMNS=${SELECTED_COLUMNS}")
+#fi
+#cat <( echo $TITLELINE ) /dev/stdin | cut -f${SELECTED_COLUMNS} -d "${DELIM}"
+
+if [ "$DEBUGMODE" == "1" ]; then
+   (>&2 echo "INFILE=\"${INFILE}\"")
+   (>&2 echo "TEGREPSTAT=\"${TEGREPSTAT}\"")
+fi
+
+cut -f$(file2list <(cat $INFILE | head -n1 | tr '\t' '\n' | egrep --line-number "${TEGREPSTAT}" | cut -f1 -d ':')) ${INFILE} 
+

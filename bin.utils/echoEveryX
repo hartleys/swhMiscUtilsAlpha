@@ -1,0 +1,20 @@
+#!/bin/bash
+
+#TODO: WRITE HELPDOC?
+
+EVERYX=$1
+
+if [ "$EVERYX" == "" ]; then
+  EVERYX="10"
+fi
+
+LNCT=0;
+while read line
+do
+  LNCT=$(( $LNCT + 1 ))
+  LNREM=$(( $LNCT % ${EVERYX} ))
+  if [ ${LNREM} -eq "0" ]; then
+    echo $line
+  fi
+done
+

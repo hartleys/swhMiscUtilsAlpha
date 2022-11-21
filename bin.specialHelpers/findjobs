@@ -1,0 +1,175 @@
+#!/bin/bash
+
+#estat | tail -n+2 | awk '{ if ( $5 == "qw" ) print $1 }' | tr '\n' '|'
+
+#+SHORTDESC="Finds jobs that satisfy a predicate or option."
+#+ HELPTEXT="Looks at the job list, finds a list of jobs."$'\n'
+#++HELPTEXT="More Help Text"$'\n'
+#+ SYNTAXTEXT="findjobs [options] [regex]"$'\n'
+#+ PARAMS="--help: displays syntax and help info."$'\n'
+#++PARAMS="--man: synonym for --help."$'\n'
+#++PARAMS=""$'\n'
+#++PARAMS="--regex <regex>: watch job with name matching the supplied regular expression."$'\n'
+#++PARAMS="--prefix <prefix>: find jobs with the given prefix."$'\n'
+#++PARAMS="--status <statusCode>: find jobs with the given statusCode."$'\n'
+#++PARAMS="--finished <jobSuffixList.txt>: Using the given prefix and the given file of jobname suffixes, find the jobs that are no longer on the queue."$'\n'
+#++PARAMS="--field <jid|jobID|name|ct>: output only the jid or the name or just the number of entries."$'\n'
+#++PARAMS="--cts: Output only the number of found entries."$'\n'
+
+#+ VERSION="0.0.6"
+
+#todo:
+#    #++PARAMS="--jobidrange [jobid]-[jobid]: watch job with the given jobID range"$'\n'
+
+CURRENT_SCRIPT_DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd -P )"
+if [ "$1" == "--help" -o "$1" == "--man" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript ${BASH_SOURCE[0]}
+  exit 1
+elif [ "$1" == "--manMarkdown" ]; then
+  ${CURRENT_SCRIPT_DIR}/../internal.manUtil/manForScript --markdown ${BASH_SOURCE[0]}
+  exit 1
+fi
+
+if [ "$SWHENV_QUEUEENGINE_QUEUED" == "" ]; then
+   SWHENV_QUEUEENGINE_QUEUED="qw";
+fi
+
+JID=""
+REGEX="";
+JOBPREFIX="";
+STATUS="";
+FINISHEDFILE="";
+JOBIDRANGE="";
+VERBOSE="0"
+FIELD=""
+
+while [ "$#" -gt 0 ];
+do
+      if [ "$1" == "--verbose" -o "$1" == "-v" ];
+      then
+        VERBOSE="$(( $VERBOSE + 1 ))"
+      fi
+      if [ "$1" == "--regex" ];
+      then
+        shift
+        REGEX=$1
+      fi
+      if [ "$1" == "--prefix" ];
+      then
+        shift
+        JOBPREFIX=$1
+      fi
+      if [ "$1" == "--status" ];
+      then
+        shift
+        STATUS=$1
+      fi
+      if [ "$1" == "--finished" ];
+      then
+        shift
+        FINISHEDFILE=$1
+      fi
+      if [ "$1" == "--field" ];
+      then
+        shift
+        FIELD=$1
+      fi
+      if [ "$1" == "--cts" ];
+      then
+        FIELD="c"
+      fi
+      shift;
+done
+
+
+if [ "$1" != "" -a "$REGEX" == "" ];
+then
+  REGEX=$1
+fi
+
+if [[ "$VERBOSE" > "0" ]];
+then
+  echo "STARTING"
+  echo "VERBOSE=$VERBOSE"
+  echo "REGEX=$REGEX"
+  echo "JOBPREFIX=$JOBPREFIX"
+  echo "STATUS=$STATUS"
+  echo "FINISHEDFILE=$FINISHEDFILE"
+fi
+
+tmpfile=$(mktemp /tmp/findjobs.XXXXXX)
+tmpfileB=$(mktemp /tmp/findjobs.XXXXXX)
+
+#exec 3>"$tmpfile"
+#rm $tmpfile
+
+qstat -xml | tr '\n' ' ' | sed 's#<job_list[^>]*>#\n#g' | sed 's#<[^>]*>##g' | grep " " | column -t | sed $'s/[\t ]\+/\t/g' > $tmpfile
+
+#cat /dev/fd/3
+
+if [ "$JOBPREFIX" != "" ];
+then
+  #cat /dev/fd/3 | 
+  cat $tmpfile | awk -v vvar="^${JOBPREFIX}" '{ if( $3 ~ vvar) print; }' > $tmpfileB
+  cat $tmpfileB > $tmpfile
+fi  
+
+#cat /dev/fd/3 | awk -v vvar=${JOBPREFIX} '{ print $3 }'
+
+if [ "$REGEX" != "" ];
+then
+  #cat /dev/fd/3 | 
+  cat $tmpfile | awk -v vvar=${REGEX} '{ if( $3 ~ vvar) print; }' > $tmpfileB
+  cat $tmpfileB > $tmpfile
+fi  
+
+if [ "$STATUS" != "" ];
+then
+  #cat /dev/fd/3 | 
+  cat $tmpfile | awk -v vvar=${STATUS} '{ if( $5 == vvar) print; }' > $tmpfileB
+  cat $tmpfileB > $tmpfile
+fi  
+
+if [ "$FINISHEDFILE" != "" ];
+then
+  rm $tmpfileB;
+  while read line
+  do
+    JOBCT=$( cat $tmpfile | awk -v vvar="${line}$" '{ if( $3 ~ vvar ) print; }' | grep -c "^" )
+    if [ "$JOBCT" == "0" ];
+    then
+      echo $line >> $tmpfileB;
+    fi
+  done < $FINISHEDFILE
+  
+  cat $tmpfileB > $tmpfile
+else
+   #Can't do field if doing finishedfile!
+	if [ "$FIELD" != "" ];
+	then
+	  if [ "$FIELD" == "jid" -o "$FIELD" == "jobID" ];
+	  then
+	    cat $tmpfile | cut -f1 > $tmpfileB
+	  fi
+	  if [ "$FIELD" == "name" -o "$FIELD" == "n" ];
+	  then
+	    cat $tmpfile | cut -f3 > $tmpfileB
+	  fi
+	  if [ "$FIELD" == "ct" -o "$FIELD" == "c" ];
+	  then
+	    cat $tmpfile | grep -c "^" > $tmpfileB
+	  fi
+	  cat $tmpfileB > $tmpfile
+
+	fi
+fi
+
+# except for count:
+	  if [ "$FIELD" == "ct" -o "$FIELD" == "c" ];
+	  then
+	    cat $tmpfile | grep -c "^" > $tmpfileB
+	    cat $tmpfileB > $tmpfile
+	  fi
+
+cat $tmpfile
+

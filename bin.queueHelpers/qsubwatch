@@ -1,0 +1,69 @@
+#!/bin/bash
+
+jobID=$(qsub "$@")
+jobID=$(echo $jobID | awk 'match($0,/[0-9]+/){print substr($0, RSTART, RLENGTH)}')
+
+
+
+NEXTARGISNAME=false
+SCRIPTNAME="${@: -1}"
+
+#By default, the job name is the input script name:
+JOBNAME="$SCRIPTNAME"
+
+echo "qsubbing script: $JOBNAME"
+
+#Otherwise, the job name can be specified by the -N param:
+for arg in "$@"
+do
+  if [ "$arg" == "-N" ];
+  then
+    NEXTARGISNAME=true;
+  else
+    NEXTARGISNAME=false;
+  fi
+  if [ "$NEXTARGISNAME" == true ];
+  then
+    JOBNAME="$arg"
+  fi
+done
+
+#Finally, the job name can be specified in the script itself:
+while read line
+do
+  if [ "$(echo $line | cut -c1-5)" == '#$ -N' ];
+  then
+    JOBNAME=$(echo $line | cut -c7-);
+  fi
+done < "$SCRIPTNAME"
+
+#Ok, now that we have the job name. let's submit it:
+echo "submitting job named: $JOBNAME"
+
+qsub "$@"
+
+echo "waiting for job: $JOBNAME"
+
+#Now wait and bing once it starts running:
+kettlewatch $JOBNAME
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

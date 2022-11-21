@@ -1,0 +1,33 @@
+#!/bin/bash
+
+
+tmpfileA=$(mktemp /tmp/estat2.XXXXXX)
+exec 3>"$tmpfileA"
+rm $tmpfileA
+
+CURR=$( sstatSGE | sed $'s/[ ]\+/\t/g' | awk ' $7 ~ /node/ { print }' )
+
+echo -n "WAITING FOR QUEUE...";
+while [ "$CURR" == "" ]; do
+   sleep 0.01
+   CURR=$( sstatSGE | sed $'s/[ ]\+/\t/g' | awk ' $7 ~ /node/ { print }' )
+done
+echo "RUNNING:"
+echo "\"$CURR\""
+
+echo -n "WAITING FOR FAILURE...";
+
+NEXTCURR=$(  sstatSGE | sed $'s/[ ]\+/\t/g' | awk ' $7 ~ /node/ { print }')
+IX=0
+
+while [ "$NEXTCURR" != "" -a "$IX" -lt 20 ] ; do
+   IX=$(( $IX + 1 ))
+   NEXTCURR=$( sstatSGE | sed $'s/[ ]\+/\t/g' | awk ' $7 ~ /node/ { print }' | cut -f7)
+done
+
+echo "--------------------------------------"
+echo "Failures:"
+echo $NEXTCURR 
+echo "--------------------------------------"
+echo "Failure Nodes:"
+echo $NEXTCURR | getUnique.py -

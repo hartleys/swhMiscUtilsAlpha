@@ -1,0 +1,6 @@
+#This is only ever intended to be called internally via the "source" command.
+#Anything else will result in weirdness
+
+
+source ${SWH_HELPER_SCRIPTS}/manForScript ${BASH_SOURCE[0]}
+

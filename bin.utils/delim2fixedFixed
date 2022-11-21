@@ -1,0 +1,282 @@
+#!/usr/bin/perl -w
+
+eval 'exec /usr/bin/perl -w -S $0 ${1+"$@"}'
+    if 0; # not running under some shell
+# $Id: delim2fixed 7367 2014-11-06 15:24:51Z pchines $
+
+use strict;
+use Getopt::Long;
+use Pod::Usage;
+
+=head1 NAME
+
+delim2fixed - make delimited columns into fixed width
+
+=head1 SYNOPSIS
+
+Convert tab-delimited data to fixed-width:
+
+  delim2fixed delim.tab > fixed.txt
+
+Align columns for viewing with less:
+
+  delim2fixed delim.tab | less -S
+
+For discussion of options, delim2fixed -h -h.
+
+=head1 DESCRIPTION
+
+Convert delimited files to fixed width.  This is particularly useful for
+viewing data with a pager program like 'less'.
+
+Note that for now the entire dataset must fit into memory.  This is a
+limitation (bug) that hasn't given me much trouble yet, so I haven't bothered
+to fix it.  Let me know if it becomes a problem for you.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-box> [n]
+
+Create pretty boxed output with N spaces between vertical lines and data.
+Overrides C<-field_separator>.  If N is not supplied, it defaults to 0.
+
+=item B<-comment> PREFIX
+
+Lines prefixed with the given regex will be printed as is.
+
+=item B<-delimiter> STR
+
+Delimiter in input file.  Defaults to tab.
+
+=item B<-field_separator> STR
+
+String to use to separate fields (after first padding with spaces to make all
+data the same length.  Defaults to a single space.
+
+=item B<-header>
+
+=item B<-noheader>
+
+Indicate whether the first row of data should be set apart as a header row.
+Default is not to, unless C<-box> option is applied.
+
+=item B<-justify> left | right
+
+Left or right justify all columns.  Default is to right-justify columns that
+look like numbers and left-justify columns that don't.
+
+=item B<-max_width> NN
+
+Maximum column width.  Default is no maximum, depends only on data.
+When this option is used, longer values will be truncated, and the
+last visible character will be replaced by a '+' to indicate that the value
+continues.
+
+=item B<-sample> NN
+
+Load this number of lines into memory, in order to gauge column widths.  This
+option does not apply when C<-transpose> option is given, since in that case,
+all data is loaded into memory.  Defaults to 1000.
+
+=item B<-transpose>
+
+Transpose rows and columns.
+
+=item B<-manual>
+
+For complete documentation.
+
+=back
+
+=cut
+
+my $EMPTY = q{};
+my $SPACE = q{ };
+my $PIPE  = q{|};
+my $PLUS  = q{+};
+my $DASH  = q{-};
+my $SAMPLE_LINES = 1000;  # lines to read before deciding on column width
+my %Opt = (
+        delimiter       => "\t",
+        field_separator => $SPACE,
+        justify         => $EMPTY,
+        sample          => $SAMPLE_LINES,
+        );
+
+GetOptions(\%Opt, qw(box:i comment=s delimiter=s field_separator|fs=s header!
+            justify|justification=s max_width|m=i sample=i transpose
+            help+ manual)
+        ) || pod2usage(1);
+if ($Opt{manual}) {
+    pod2usage(verbose => 2);
+}
+if ($Opt{help}) {
+    pod2usage(verbose => $Opt{help} -1);
+}
+if ($Opt{sample} < 2) {
+    $Opt{sample} = 2;
+}
+if($Opt{max_width}){
+    if ($Opt{max_width} < 0) {
+        $Opt{max_width} = 0;
+    }
+}
+if ($Opt{justify} =~ /^L/i) {
+    $Opt{justify} = 'left';
+}
+elsif ($Opt{justify} =~ /^R/i) {
+    $Opt{justify} = 'right';
+}
+elsif ($Opt{justify}) {
+    pod2usage("-justify '$Opt{justify}' is not understood;"
+            . " must be 'left' or 'right'");
+}
+if (defined $Opt{box}) {
+    $Opt{field_separator} = ($SPACE x $Opt{box}) . $PIPE . ($SPACE x $Opt{box});
+    if (!defined $Opt{header}) {
+        $Opt{header} = 1;
+    }
+}
+$Opt{header} ||= 0;
+
+my (@data, @col_size, $len, $read_more);
+while (<>) {
+    if ($Opt{comment} && /^$Opt{comment}/o) {
+        print;
+        next;
+    }
+    chomp;
+    my @col = split /\Q$Opt{delimiter}\E/;
+    push @data, \@col;
+    for (my $i = 0; $i < @col; ++$i) {
+        $len = length($col[$i]);
+        if (!$col_size[$i] || $len > $col_size[$i]) {
+            if (!$Opt{max_width} || $len <= $Opt{max_width}) {
+                $col_size[$i] = $len;
+            }
+            else {
+                $col_size[$i] = $Opt{max_width};
+                $col[$i] = substr($col[$i], 0, $Opt{max_width}-1) . '+';
+            }
+        }
+    }
+    if (!$Opt{transpose} && @data > $Opt{sample}) {
+        $read_more = 1;
+        last;
+    }
+}
+if ($Opt{transpose}) {
+    my @trans;
+    @col_size = ();
+    for (my $i = 0; $i < @data; ++$i) {
+        for (my $j = 0; $j < @{ $data[$i] }; ++$j) {
+            $trans[$j][$i] = $data[$i][$j];
+            $len = length($trans[$j][$i]);
+            if (!$col_size[$i] || $len > $col_size[$i]) {
+                $col_size[$i] = $len;
+            }
+        }
+    }
+    @data = @trans;
+}
+
+my $fmt = make_format(\@col_size, $data[1] || $data[0]);
+my @ncols = (0..@col_size-1);
+print_hline(\@col_size);
+foreach my $line (@data) {
+    printf $fmt, map { defined($line->[$_]) ? $line->[$_] : $EMPTY } @ncols;
+    if ($Opt{header} == 1) {
+        print_hline(\@col_size, 1);
+        $Opt{header} = 2;
+    }
+}
+if ($read_more) {
+    while (<>) {
+        if ($Opt{comment} && /^$Opt{comment}/o) {
+            print;
+            next;
+        }
+        chomp;
+        my @col = split /\Q$Opt{delimiter}\E/;
+        for (my $i = 0; $i < @col; ++$i) {
+            if (!$col_size[$i]) {
+                warn "New column ".($i+1)." seen at line $.. Ignored.\n";
+            }
+            elsif (length($col[$i]) > $col_size[$i]) {
+                $col[$i] = substr($col[$i], 0, $col_size[$i]-1) . "+";
+            }
+        }
+        printf $fmt, map { defined($col[$_]) ? $col[$_] : $EMPTY } @ncols;
+    }
+}
+if (@data > 1) {
+    print_hline(\@col_size);
+}
+
+## END MAIN
+
+sub print_hline {
+    my ($ra_cols, $under) = @_;
+    if (defined $Opt{box}) {
+        print map { $PLUS . ($DASH x ($_ + $Opt{box} * 2)) } @$ra_cols;
+        print "$PLUS\n";
+    }
+    elsif ($under && $Opt{header} == 1) {
+        print join($Opt{field_separator}, map { $DASH x $_ } @$ra_cols), "\n";
+    }
+}
+
+sub make_format {
+    my ($ra_cols, $ra_example) = @_;
+    return if !@$ra_cols;
+    my $fmt = $EMPTY;
+    if (defined $Opt{box}) {
+        $fmt .= $PIPE . ($SPACE x $Opt{box});
+    }
+    for (my $i = 0; $i < @$ra_cols; ++$i) {
+        $fmt .= '%';
+        if ($Opt{justify} eq 'left'
+                || (!$Opt{justify} 
+                    && (!defined($ra_example->[$i])
+                        || $ra_example->[$i] !~ /^[+-]?[\d.eE+-]+$/))) {
+            $fmt .= '-';
+        }
+        $fmt .= $ra_cols->[$i] . 's';
+        if ($i < @$ra_cols - 1) {
+            $fmt .= $Opt{field_separator};
+        }
+    }
+    if (defined $Opt{box}) {
+        $fmt .= ($SPACE x $Opt{box}) . $PIPE;
+    }
+    $fmt .= "\n";
+    return $fmt;
+}
+
+=head1 AUTHOR
+
+ Peter Chines <pchines@mail.nih.gov>
+
+=head1 LEGAL
+
+This software/database is "United States Government Work" under the terms of
+the United States Copyright Act.  It was written as part of the authors'
+official duties for the United States Government and thus cannot be
+copyrighted.  This software/database is freely available to the public for
+use without a copyright notice.  Restrictions cannot be placed on its present
+or future use. 
+
+Although all reasonable efforts have been taken to ensure the accuracy and
+reliability of the software and data, the National Human Genome Research
+Institute (NHGRI) and the U.S. Government does not and cannot warrant the
+performance or results that may be obtained by using this software or data.
+NHGRI and the U.S.  Government disclaims all warranties as to performance,
+merchantability or fitness for any particular purpose. 
+
+In any work or product derived from this material, proper attribution of the
+authors as the source of the software or data should be made, using "NHGRI
+Genome Technology Branch" as the citation. 
+
+=cut

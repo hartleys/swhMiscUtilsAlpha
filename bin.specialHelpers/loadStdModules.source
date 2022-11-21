@@ -1,0 +1,6 @@
+#!/bin/bash
+
+#Figure out if you're on HELIX, Biowulf, Trek, or CCAD:
+
+CURRMACHINE="UNKNOWN"
+

@@ -1,0 +1,38 @@
+#!/bin/bash
+
+SIMPLE=0
+VERBOSE=0
+while [ "$#" -gt 1 ];
+do
+      if [ "$1" == "--simple" -o "$1" == "-s" ];
+      then
+        SIMPLE="1";
+      fi
+      if [ "$1" == "-v" -o "$1" == "--verbose" ];
+      then
+        VERBOSE="1";
+      fi
+      shift;
+done
+
+   duration=$1
+   shiff=$duration
+   secs=$((shiff % 60));  shiff=$((shiff / 60));
+   mins=$((shiff % 60));  shiff=$((shiff / 60));
+   hours=$((shiff % 24 ));  shiff=$((shiff / 24));
+   days=$shiff
+
+if [ "$SIMPLE" == "1" ];
+then
+    if [ $secs  -lt 10 ]; then secs="0${secs}"; fi
+    if [ $mins  -lt 10 ]; then mins="0${mins}"; fi
+    if [ $hours -lt 10 ]; then hours="0${hours}"; fi
+    echo "${days}d.${hours}h.${mins}m.${secs}s"
+ else 
+    if [ $secs  -lt 10 ]; then secs="0${secs}"; fi
+    if [ $mins  -lt 10 ]; then mins="0${mins}"; fi
+    if [ $hours -lt 10 ]; then hours="0${hours}"; fi
+   echo "${days}d.${hours}h.${mins}m.${secs}s"
+ fi
+ 
+ 
