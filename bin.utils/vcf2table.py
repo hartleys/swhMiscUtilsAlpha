@@ -114,7 +114,7 @@ else:
 
 if not isStream:
    if inf[-3:] == ".gz":
-      inf = gzip.open(inf,'r');
+      inf = gzip.open(inf,'rt');
    else:
       inf = open(inf,'r');
 

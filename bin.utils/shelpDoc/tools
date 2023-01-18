@@ -1,0 +1,7 @@
+
+
+# Python package pyfaidx
+# allows random access of indexed fastas and fastq!
+  import pyfaidx
+  ffd = pyfaidx.Fasta('/data/hartleys/pub/resources/hg19/b37/hg19.noChrInChrName.fa')
+  ffd["3"][60830000:60830800]

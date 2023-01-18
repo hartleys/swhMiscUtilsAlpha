@@ -1,0 +1,24 @@
+
+
+
+submitting:
+   sbatch jobscript.sh param1 param2 ...
+      -N 1
+      -n 1
+      --mem 64g
+      -o logs/MT2.TN.v003.p01/%x.%N.%j.out # STDOUT
+      -e logs/MT2.TN.v003.p01/%x.%N.%j.out # STDERR
+      --partition=norm
+      --time=10-00:00:00
+      --cpus-per-task=1
+      --no-requeue
+
+Checking existing jobs:
+    astat
+    estatraw
+    squeue -u hartleys
+
+Check available partitions:
+    freen
+
+    
