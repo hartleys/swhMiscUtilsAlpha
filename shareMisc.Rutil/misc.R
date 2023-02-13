@@ -6,6 +6,7 @@ SOFTWARE.DIR <- paste0(  SHAREMISC.DIR , "shareMisc.Rutil/" )
 JS.dir <- paste0(SOFTWARE.DIR,"JunctionSeq/")
 QT.dir <- paste0(SOFTWARE.DIR,"QoRTs/")
 
+source(paste0(SOFTWARE.DIR,"load.libs.R"));
 source(paste0(SOFTWARE.DIR,"misc.p2.R"));
 source(paste0(JS.dir,"00.minor.utils.R"));
 source(paste0(JS.dir,"plotting.helpers.R"));
@@ -43,7 +44,6 @@ tablema <- function(...){
    table(...,useNA = "always")
 }
 
-
 memoryUsageReport <- function(print.threshold.bytes=100000000, units="auto"){
   lss <- ls(.GlobalEnv);
   message("length(ls()) = ",length(lss));
@@ -63,8 +63,6 @@ memoryUsageReport <- function(print.threshold.bytes=100000000, units="auto"){
   invisible(mu.df);
 }
 
-
-
 plotwrap <- function( plotfcn,file.title="plot",plotver="v001",
            plotdir="plots",dir=paste0(plotdir,"/",plotver,"/"),
            PNG=T, file=paste0(dir,"/",plotver,".",file.title,".",plotver,".png"),
@@ -83,7 +81,6 @@ nan.rm <- function(x){
 nana.rm <- function(x){
   x[ ! ( is.na(x) | is.nan(x) ) ]
 }
-
 nanai.rm <- function(x){
   x[ ! ( is.na(x) | is.nan(x) | is.infinite(x) ) ]
 }

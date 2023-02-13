@@ -21,6 +21,8 @@ args = sys.argv;
 #./scripts/decodeColByName.py "acmg.table.2017-03-20.SWH.txt" "Gene Symbol" "ENSEMBL ID,Entrez Gene ID,Phenotype" "./scrap/test.in.txt" "SYMBOL" -
 #./scripts/decodeColByName.py "acmg.table.2017-03-20.SWH.txt" "Gene Symbol" "ENSEMBL ID,Entrez Gene ID,Phenotype" "./HC/shAnnoAcmg/annotated.ACMG.wGRP.withGS.LLOF.table.txt" "SWH_SYMBOL" - | ./scripts/addQuotesToTable.py - - > ./HC/shAnnoAcmg/annotated.ACMG.wGRP.withGS.LLOF.info.table.txt
 
+
+
 outfile = args.pop(-1);
 
 fromCol2 = args.pop(-1);

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
-import sys,gzip,errno,time,re 
+import sys,gzip,errno,time,re
 
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
@@ -25,6 +25,14 @@ args = sys.argv;
 #+ PARAMS="--help: displays syntax and help info."$'\n'
 #++PARAMS="--man: synonym for --help."$'\n'
 #+ VERSION="0.0.5"
+
+
+if len(args) == 0 or "--help" in args or "--man" in args:
+   import os;
+   scriptAbsPath=os.path.abspath(__file__);
+   shareMiscHome=os.path.dirname(os.path.abspath( os.path.dirname( __file__ )));
+   os.system(shareMiscHome+"/internal.manUtil/manForScript "+scriptAbsPath);
+   exit(1);
 
 
 if args[-1] == "-":
@@ -86,8 +94,8 @@ try:
          out.write("chr"+cells[0]+"\t"+cells[1]+"\t.\t"+cells[3]+"\t"+cells[4]+"\t.\t.\t");
          for i in range(0,len(fieldTitleCells)):
             out.write(cleanForVcf(fieldTitleCells[i]) +"="+cleanForVcf(fieldCells[i])+";");
-         
-         
+
+
          pathString = cleanForVcf(fieldCells[pathoidx])
          pvsIdx = pathString.find("PVS1")
          out.write("intervarCALL" +"="+cleanForVcf(pathString[9:(pvsIdx-1)])+";");
@@ -103,8 +111,8 @@ try:
             for jj in range(0,catLevelCts[ii]):
                out.write( catLevels[ii]+str(jj + 1)+"="+pathCells[0]+";");
                pathCells = pathCells[1:]
-         
-         
+
+
          out.write("\n");
 except IOError as e:
    if e.errno == errno.EPIPE:

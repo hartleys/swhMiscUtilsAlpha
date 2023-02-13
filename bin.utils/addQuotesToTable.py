@@ -29,8 +29,12 @@ def is_integer(s):
 
 args = sys.argv;
 
-#if "--help" in args or "--man" in args:
-#   
+if "--help" in args or "--man" in args:
+   import os;
+   scriptAbsPath=os.path.abspath(__file__);
+   shareMiscHome=os.path.dirname(os.path.abspath( os.path.dirname( __file__ )));
+   os.system(shareMiscHome+"/internal.manUtil/manForScript "+scriptAbsPath);
+   exit(1);
 
 outfile = args.pop(-1);
 infile = args.pop(-1);

@@ -22,7 +22,19 @@ args = sys.argv;
 #+ SYNTAXTEXT="getStat.py [options]"$'\n'
 #+ PARAMS="--help: displays syntax and help info."$'\n'
 #++PARAMS="--man: synonym for --help."$'\n'
+#++PARAMS="--getMax: s"$'\n'
+#++PARAMS="--getMin: "$'\n'
+#++PARAMS="--getMean: "$'\n'
+#++PARAMS="--getSum: "$'\n'
+#++PARAMS="--float: "$'\n'
 #+ VERSION="0.0.5"
+
+if "--help" in args or "--man" in args:
+   import os;
+   scriptAbsPath=os.path.abspath(__file__);
+   shareMiscHome=os.path.dirname(os.path.abspath( os.path.dirname( __file__ )));
+   os.system(shareMiscHome+"/internal.manUtil/manForScript "+scriptAbsPath);
+   exit(1);
 
 getMax = False
 getMin = False

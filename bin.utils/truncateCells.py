@@ -18,16 +18,13 @@ args = sys.argv;
 #++PARAMS="--man: synonym for --help."$'\n'
 #+ VERSION="0.0.5"
 
+
 if "--help" in args or "--man" in args:
-   import inspect,commands,os
-   SCRIPT_FILE_PATH=inspect.stack()[0][1];
-   print(SCRIPT_FILE_PATH);
-   SCRIPT_DIR_PATH=commands.getstatusoutput("dirname "+SCRIPT_FILE_PATH)[1]
-   SCRIPT_FILENAME=commands.getstatusoutput("basename "+SCRIPT_FILE_PATH)[1]
-   #print("SCRIPT_DIR_PATH="+SCRIPT_DIR_PATH);
-   #print("SCRIPT_FILENAME="+SCRIPT_FILENAME);
-   os.system(SCRIPT_DIR_PATH+"/../internal.manUtil/manForScript"+" "+SCRIPT_FILE_PATH)
-   exit(0);
+   import os;
+   scriptAbsPath=os.path.abspath(__file__);
+   shareMiscHome=os.path.dirname(os.path.abspath( os.path.dirname( __file__ )));
+   os.system(shareMiscHome+"/internal.manUtil/manForScript "+scriptAbsPath);
+   exit(1);
 
 delim = "\t";
 cellLim = 30000;

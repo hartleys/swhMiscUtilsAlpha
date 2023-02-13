@@ -1,7 +1,9 @@
+
+
+
 f.na <- function(x){
   ifelse(is.na(x),FALSE,x);
 }
-library("Biostrings");
 
 
 
@@ -14,7 +16,6 @@ randRound = function(x){
 }
 
 
-library(RColorBrewer)
 
 addSpacesToWidth <- function(A,B,wd,cex = 1){
     i <- 1;

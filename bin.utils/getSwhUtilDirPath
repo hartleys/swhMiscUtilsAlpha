@@ -1,0 +1,38 @@
+#!/usr/bin/env python
+
+from __future__ import print_function
+
+#+SHORTDESC="Gets the absolute directory location of the software package that this command belongs to."
+#+ HELPTEXT=""$'\n'
+#++HELPTEXT=" "$'\n'
+#+ SYNTAXTEXT="getSwhUtilDirpath"$'\n'
+#+ PARAMS="--help: displays syntax and help info."$'\n'
+#++PARAMS="--man: synonym for --help."$'\n'
+#+ VERSION="0.0.5"
+
+
+import sys,errno
+
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
+args = sys.argv;
+
+if "--help" in args or "--man" in args:
+   import os;
+   scriptAbsPath=os.path.abspath(__file__);
+   shareMiscHome=os.path.dirname(os.path.abspath( os.path.dirname( __file__ )));
+   os.system(shareMiscHome+"/internal.manUtil/manForScript "+scriptAbsPath);
+   exit(1);
+
+
+import os
+#eprint( "__file__ = "+__file__ );
+#eprint( "os.path.abspath(__file__) = "+os.path.abspath(__file__));
+#eprint( "os.path.abspath( os.path.dirname( __file__ ) ) = "+os.path.abspath( os.path.dirname( __file__ ) ));
+#eprint( "shareMisc home = "+os.path.dirname(os.path.abspath( os.path.dirname( __file__ )) ));
+
+scriptAbsPath=os.path.abspath(__file__);
+shareMiscHome=os.path.dirname(os.path.abspath( os.path.dirname( __file__ )));
+
+print(shareMiscHome);

@@ -22,14 +22,13 @@ args = sys.argv;
 #++PARAMS="--noLong: do not include long-form fields"$'\n'
 #+ VERSION="0.0.5"
 
-if len(args) == 1 or "--help" in args or "--man" in args:
-   import inspect,commands,os
-   SCRIPT_FILE_PATH=inspect.stack()[0][1];
-   print(SCRIPT_FILE_PATH);
-   SCRIPT_DIR_PATH=commands.getstatusoutput("dirname "+SCRIPT_FILE_PATH)[1]
-   SCRIPT_FILENAME=commands.getstatusoutput("basename "+SCRIPT_FILE_PATH)[1]
-   os.system(SCRIPT_DIR_PATH+"/helper/manForScript"+" "+SCRIPT_FILENAME)
-   exit(0);
+
+if len(args) == 0 or "--help" in args or "--man" in args:
+   import os;
+   scriptAbsPath=os.path.abspath(__file__);
+   shareMiscHome=os.path.dirname(os.path.abspath( os.path.dirname( __file__ )));
+   os.system(shareMiscHome+"/internal.manUtil/manForScript "+scriptAbsPath);
+   exit(1);
 
 if args[-1] == "-":
    args.pop(-1)
